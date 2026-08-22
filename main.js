@@ -21,9 +21,15 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
 
-  // Auto-updater
-  autoUpdater.checkForUpdatesAndNotify();
+app.whenReady().then(() => {
+  createWindow();
+
+  // Initialize auto-updater after window is created
+  if (process.env.NODE_ENV !== 'development') {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   autoUpdater.on('update-available', () => {
     console.log('Update beschikbaar!');
@@ -33,9 +39,7 @@ function createWindow() {
     console.log('Update gedownload. Herstart de app om te updaten.');
     autoUpdater.quitAndInstall();
   });
-}
-
-app.whenReady().then(createWindow);
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
