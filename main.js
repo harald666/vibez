@@ -26,19 +26,19 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Initialize auto-updater after window is created
-  if (process.env.NODE_ENV !== 'development') {
+  // Initialize auto-updater ONLY in production (packaged app)
+  if (app.isPackaged) {
     autoUpdater.checkForUpdatesAndNotify();
+
+    autoUpdater.on('update-available', () => {
+      console.log('Update beschikbaar!');
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+      console.log('Update gedownload. Herstart de app om te updaten.');
+      autoUpdater.quitAndInstall();
+    });
   }
-
-  autoUpdater.on('update-available', () => {
-    console.log('Update beschikbaar!');
-  });
-
-  autoUpdater.on('update-downloaded', () => {
-    console.log('Update gedownload. Herstart de app om te updaten.');
-    autoUpdater.quitAndInstall();
-  });
 });
 
 app.on('window-all-closed', () => {
