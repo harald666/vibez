@@ -1,4 +1,5 @@
 const { app, BrowserWindow } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
 
@@ -9,7 +10,6 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      // Schakel hardware-versnelling volledig uit
       hardwareAcceleration: false,
       webgl: false,
       gpu: false,
@@ -20,6 +20,18 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Auto-updater
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-available', () => {
+    console.log('Update beschikbaar!');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    console.log('Update gedownload. Herstart de app om te updaten.');
+    autoUpdater.quitAndInstall();
   });
 }
 
@@ -35,25 +47,4 @@ app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
-});
-
-const { autoUpdater } = require('electron-updater');
-
-app.whenReady().then(() => {
-  // Je bestaande code voor het venster
-  mainWindow = new BrowserWindow({ /* ... */ });
-  mainWindow.loadURL('https://vibe.mistral.ai'); // Vervang door je eigen URL
-
-  // Auto-updater
-  autoUpdater.checkForUpdatesAndNotify();
-
-  // Optioneel: Log updates voor debugging
-  autoUpdater.on('update-available', () => {
-    console.log('Update beschikbaar!');
-  });
-
-  autoUpdater.on('update-downloaded', () => {
-    console.log('Update gedownload. Herstart de app om te updaten.');
-    autoUpdater.quitAndInstall();
-  });
 });
