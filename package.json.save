@@ -1,0 +1,39 @@
+{
+  "name": "vibe-electron-app",
+  "version": "1.0.0",
+  "description": "Een Electron-applicatie voor Vibe",
+  "homepage": "https://github.com/harald666/vibez",
+  "author": {
+    "name": "Joe Pizza",
+    "email": "info@lecomputeur.nl"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "ELECTRON_DISABLE_GPU=1 LIBVA_DRIVER_NAME=i965 electron . --disable-gpu --disable-software-rasterizer --no-sandbox",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "43.4.1",
+    "electron-builder": "^24.13.3"
+  },
+  "overrides": {
+    "inflight": "^1.0.6",
+    "glob": "^10.5.0",
+    "tar": "^6.2.1",
+    "boolean": "^3.2.0"
+  },
+"build": {
+  "appId": "com.vibez.app",
+  "productName": "VibeZ",
+  "maintainer": "Joe Pizza <info@lecomputeur.nl>",
+  "desktopName": "VibeZ",
+  "syncDesktopName": true,
+  "icon": "icon.png",
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "category": "Utility"
+  },
+  "directories": {
+    "output": "dist"
+  }
+}

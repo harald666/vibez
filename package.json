@@ -1,0 +1,43 @@
+{
+  "name": "VibeZ",
+  "version": "1.0.0",
+  "description": "A graphical client for Mistral Vibe",
+  "homepage": "https://github.com/harald666/vibez",
+  "author": {
+    "name": "Joe Pizza",
+    "email": "info@lecomputeur.nl"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "ELECTRON_DISABLE_GPU=1 LIBVA_DRIVER_NAME=i965 electron . --disable-gpu --disable-software-rasterizer --no-sandbox",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "43.4.1",
+    "electron-builder": "^24.13.3",
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "com.vibez.app",
+    "productName": "VibeZ",
+    "icon": "icon.png",
+    "publish": {
+      "provider": "github",
+      "owner": "harald666",
+      "repo": "vibez"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "desktop": {
+        "name": "VibeZ"
+      }
+    }
+  }
+}
