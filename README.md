@@ -80,4 +80,4 @@ VibeZ is built with [Electron](https://www.electronjs.org/). The main applicatio
 
 ## License
 
-This project does not currently include a license. Add a `LICENSE` file before granting third parties permission to use, modify, or distribute the project.
+VibeZ is released under the [MIT License](LICENSE).
