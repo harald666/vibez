@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# Local Electron Builder output
+.electron-builder/

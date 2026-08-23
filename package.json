@@ -22,7 +22,7 @@
   "build": {
     "appId": "com.vibez.app",
     "productName": "VibeZ",
-    "icon": "icon.png",
+    "icon": "build/icons",
     "publish": {
       "provider": "github",
       "owner": "harald666",
@@ -34,12 +34,10 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
+        "deb",
+        "rpm"
       ],
-      "category": "Development",
-      "desktop": {
-        "name": "VibeZ"
-      }
+      "category": "Development"
     }
   }
 }
