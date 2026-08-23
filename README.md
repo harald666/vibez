@@ -81,3 +81,7 @@ VibeZ is built with [Electron](https://www.electronjs.org/). The main applicatio
 ## License
 
 VibeZ is released under the [MIT License](LICENSE).
+
+## Privacy
+
+See the [Privacy Policy](PRIVACY.md) for details about local browser data, Mistral Vibe, and update checks.
