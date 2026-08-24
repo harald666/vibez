@@ -2,7 +2,6 @@ const { BrowserWindow, clipboard, desktopCapturer, dialog, ipcMain, screen } = r
 const path = require('path');
 
 let mainWindow = null;
-let buttonWindow = null;
 let overlayWindows = [];
 let captures = new Map();
 let ipcRegistered = false;
@@ -28,56 +27,93 @@ function getCaptureOrderedDisplays() {
   return primary ? [primary, ...others] : displays;
 }
 
-function positionButton() {
-  if (!mainWindow || mainWindow.isDestroyed() || !buttonWindow || buttonWindow.isDestroyed()) return;
-  const b = mainWindow.getBounds();
-  buttonWindow.setBounds({
-    x: Math.round(b.x + b.width - 164),
-    y: Math.round(b.y + 74),
-    width: 148,
-    height: 50,
-  });
-}
-
-function showButton() {
-  if (!buttonWindow || buttonWindow.isDestroyed()) return;
-  positionButton();
-  if (captureInProgress || !mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || !mainWindow.isVisible()) {
-    buttonWindow.hide();
-    return;
-  }
-  buttonWindow.showInactive();
-}
-
-async function ensureButtonWindow() {
+async function installScreenshotButton() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (buttonWindow && !buttonWindow.isDestroyed()) return showButton();
 
-  buttonWindow = new BrowserWindow({
-    parent: mainWindow,
-    width: 148,
-    height: 50,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    hasShadow: false,
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
+  try {
+    await mainWindow.webContents.executeJavaScript(`
+      (() => {
+        if (window.__vibezScreenshotUiInstalled) {
+          window.__vibezEnsureScreenshotButton?.();
+          return;
+        }
 
-  buttonWindow.on('closed', () => { buttonWindow = null; });
-  await buttonWindow.loadFile(path.join(__dirname, 'screenshot-button.html'));
-  showButton();
+        window.__vibezScreenshotUiInstalled = true;
+
+        const findIncognito = () => {
+          const candidates = [...document.querySelectorAll('button,[role="button"]')];
+          return candidates.find((element) => {
+            const text = (element.innerText || element.textContent || '').trim().toLowerCase();
+            const label = (element.getAttribute('aria-label') || '').trim().toLowerCase();
+            const title = (element.getAttribute('title') || '').trim().toLowerCase();
+            return text.includes('incognito') || label.includes('incognito') || title.includes('incognito');
+          });
+        };
+
+        const makeButton = (incognito) => {
+          const button = incognito.cloneNode(true);
+          button.id = 'vibez-screenshot-button';
+          button.removeAttribute('aria-pressed');
+          button.removeAttribute('data-state');
+          button.removeAttribute('title');
+          button.setAttribute('type', 'button');
+          button.setAttribute('aria-label', 'Screenshot');
+          button.setAttribute('title', 'Screenshot (Ctrl+Shift+S)');
+
+          while (button.firstChild) button.removeChild(button.firstChild);
+
+          const iconWrap = document.createElement('span');
+          iconWrap.setAttribute('aria-hidden', 'true');
+          iconWrap.style.display = 'inline-flex';
+          iconWrap.style.alignItems = 'center';
+          iconWrap.style.justifyContent = 'center';
+          iconWrap.style.flexShrink = '0';
+          iconWrap.style.color = 'currentColor';
+          iconWrap.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 7.5 9 5.5h6l1.5 2H19a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2h2.5Z"></path><circle cx="12" cy="13" r="3.25"></circle></svg>';
+
+          const label = document.createElement('span');
+          label.textContent = 'Screenshot';
+
+          button.append(iconWrap, label);
+          button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.vibez?.captureScreenshot();
+          });
+
+          return button;
+        };
+
+        const ensureButton = () => {
+          const existing = document.getElementById('vibez-screenshot-button');
+          if (existing && existing.isConnected) return true;
+
+          const incognito = findIncognito();
+          if (!incognito || !incognito.parentElement) return false;
+
+          const button = makeButton(incognito);
+          incognito.insertAdjacentElement('afterend', button);
+          return true;
+        };
+
+        window.__vibezEnsureScreenshotButton = ensureButton;
+        ensureButton();
+
+        let queued = false;
+        const observer = new MutationObserver(() => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => {
+            queued = false;
+            ensureButton();
+          });
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      })();
+    `);
+  } catch (error) {
+    console.error('Kon Screenshot-knop niet in Vibe plaatsen:', error);
+  }
 }
 
 function restoreMain() {
@@ -86,7 +122,6 @@ function restoreMain() {
   if (!mainWindow.isVisible()) mainWindow.show();
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.focus();
-  setTimeout(showButton, 80);
 }
 
 function closeOverlays(restore = true) {
@@ -169,7 +204,6 @@ async function startScreenshot() {
     const displays = getOrderedDisplays();
     if (!displays.length) throw new Error('Geen beeldschermen gevonden.');
 
-    if (buttonWindow && !buttonWindow.isDestroyed()) buttonWindow.hide();
     await wait(90);
 
     const frozenDisplays = [];
@@ -253,8 +287,7 @@ function registerIpc() {
 
   ipcMain.on('vibez:screenshot:start', (event) => {
     const fromMain = mainWindow && event.sender.id === mainWindow.webContents.id;
-    const fromButton = buttonWindow && event.sender.id === buttonWindow.webContents.id;
-    if (fromMain || fromButton) startScreenshot();
+    if (fromMain) startScreenshot();
   });
 
   ipcMain.on('vibez:screenshot:finish', async (event, rect) => {
@@ -276,15 +309,12 @@ function setupScreenshot(win) {
   registerIpc();
 
   win.webContents.on('did-finish-load', () => {
-    ensureButtonWindow().catch((error) => console.error('Kon schermafdrukknop niet openen:', error));
+    installScreenshotButton();
   });
 
-  win.on('move', positionButton);
-  win.on('resize', positionButton);
-  win.on('minimize', () => buttonWindow && !buttonWindow.isDestroyed() && buttonWindow.hide());
-  win.on('restore', showButton);
-  win.on('show', showButton);
-  win.on('hide', () => buttonWindow && !buttonWindow.isDestroyed() && buttonWindow.hide());
+  win.webContents.on('did-navigate-in-page', () => {
+    installScreenshotButton();
+  });
 
   win.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && String(input.key || '').toLowerCase() === 's') {
