@@ -64,11 +64,11 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install RPM build dependency
+      - name: Install Linux packaging dependencies
         if: steps.release.outputs.exists == 'false'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm
+          sudo apt-get install -y rpm libarchive-tools
 
       - name: Install dependencies
         if: steps.release.outputs.exists == 'false'
@@ -78,7 +78,7 @@ jobs:
         if: steps.release.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux AppImage deb rpm --publish always
+        run: npx electron-builder --linux AppImage deb rpm pacman --publish always
 
       - name: Update GitHub Release notes
         env:
