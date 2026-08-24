@@ -1,6 +1,5 @@
 const {
   BrowserWindow,
-  Menu,
   clipboard,
   desktopCapturer,
   dialog,
@@ -11,9 +10,10 @@ const path = require('path');
 
 let mainWindow = null;
 let buttonWindow = null;
-let overlayWindow = null;
-let captured = null;
+let overlayWindows = [];
+let captures = new Map();
 let ipcRegistered = false;
+let captureInProgress = false;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -38,7 +38,13 @@ function positionButton() {
 function showButton() {
   if (!buttonWindow || buttonWindow.isDestroyed()) return;
   positionButton();
-  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || !mainWindow.isVisible()) {
+  if (
+    captureInProgress ||
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.isMinimized() ||
+    !mainWindow.isVisible()
+  ) {
     buttonWindow.hide();
     return;
   }
@@ -83,6 +89,7 @@ async function ensureButtonWindow() {
 }
 
 function restoreMain() {
+  captureInProgress = false;
   if (!mainWindow || mainWindow.isDestroyed()) return;
   if (!mainWindow.isVisible()) mainWindow.show();
   if (mainWindow.isMinimized()) mainWindow.restore();
@@ -90,113 +97,124 @@ function restoreMain() {
   setTimeout(showButton, 80);
 }
 
-function closeOverlay(restore = true) {
-  if (overlayWindow && !overlayWindow.isDestroyed()) {
-    const win = overlayWindow;
-    overlayWindow = null;
-    captured = null;
+function closeOverlays(restore = true) {
+  const windows = overlayWindows.slice();
+  overlayWindows = [];
+  captures.clear();
+
+  for (const win of windows) {
+    if (!win || win.isDestroyed()) continue;
     win.removeAllListeners('closed');
     win.close();
   }
+
   if (restore) restoreMain();
 }
 
-function chooseScreenshotDisplay() {
-  if (!mainWindow || mainWindow.isDestroyed() || overlayWindow) return;
+async function getCaptureForDisplay(display, displayIndex) {
+  const factor = display.scaleFactor || 1;
+  const thumbnailSize = {
+    width: Math.max(1, Math.round(display.bounds.width * factor)),
+    height: Math.max(1, Math.round(display.bounds.height * factor)),
+  };
 
-  const displays = getOrderedDisplays();
-  if (displays.length <= 1) {
-    startScreenshot(displays[0]);
-    return;
-  }
-
-  const primaryId = String(screen.getPrimaryDisplay().id);
-  const vibeDisplayId = String(screen.getDisplayMatching(mainWindow.getBounds()).id);
-
-  const template = displays.map((display, index) => {
-    const notes = [];
-    if (String(display.id) === primaryId) notes.push('primair');
-    if (String(display.id) === vibeDisplayId) notes.push('VibeZ');
-    const suffix = notes.length ? ` (${notes.join(', ')})` : '';
-
-    return {
-      label: `Scherm ${index + 1} — ${display.bounds.width}×${display.bounds.height}${suffix}`,
-      click: () => startScreenshot(display),
-    };
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize,
+    fetchWindowIcons: false,
   });
 
-  const menu = Menu.buildFromTemplate(template);
-  const owner = buttonWindow && !buttonWindow.isDestroyed() ? buttonWindow : mainWindow;
-  menu.popup({ window: owner });
+  let source = sources.find((item) => String(item.display_id) === String(display.id));
+
+  // Some Linux capture backends do not expose display_id. Fall back to the
+  // left-to-right display/source order rather than silently choosing source 0.
+  if (!source && displayIndex >= 0 && displayIndex < sources.length) {
+    source = sources[displayIndex];
+  }
+
+  if (!source || source.thumbnail.isEmpty()) {
+    throw new Error(`Geen schermbron beschikbaar voor scherm ${displayIndex + 1}.`);
+  }
+
+  return source.thumbnail;
 }
 
-async function startScreenshot(selectedDisplay) {
-  if (!mainWindow || mainWindow.isDestroyed() || overlayWindow) return;
+async function createOverlay(display, image) {
+  const overlay = new BrowserWindow({
+    ...display.bounds,
+    show: false,
+    frame: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  overlayWindows.push(overlay);
+  captures.set(overlay.webContents.id, { display, image });
+
+  overlay.on('closed', () => {
+    overlayWindows = overlayWindows.filter((win) => win !== overlay);
+    captures.delete(overlay.webContents.id);
+    if (captureInProgress && overlayWindows.length === 0) restoreMain();
+  });
+
+  await overlay.loadFile(path.join(__dirname, 'screenshot-overlay.html'));
+  await overlay.webContents.executeJavaScript(
+    `window.__vibezSetScreenshot(${JSON.stringify(image.toDataURL())});`
+  );
+
+  return overlay;
+}
+
+async function startScreenshot() {
+  if (!mainWindow || mainWindow.isDestroyed() || captureInProgress) return;
+
+  captureInProgress = true;
 
   try {
-    const display = selectedDisplay || screen.getDisplayMatching(mainWindow.getBounds());
-    const factor = display.scaleFactor || 1;
-    const size = {
-      width: Math.round(display.bounds.width * factor),
-      height: Math.round(display.bounds.height * factor),
-    };
+    const displays = getOrderedDisplays();
+    if (!displays.length) throw new Error('Geen beeldschermen gevonden.');
 
-    // Hide only our floating camera button. Keep the actual VibeZ window visible
-    // until after desktopCapturer has frozen the screen, so every part of VibeZ
-    // can itself be selected in the screenshot.
+    // Keep VibeZ visible. Hide only the floating camera button so it is not
+    // included in the frozen desktop image.
     if (buttonWindow && !buttonWindow.isDestroyed()) buttonWindow.hide();
     await wait(90);
 
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: size,
-      fetchWindowIcons: false,
-    });
-
-    let source = sources.find((s) => String(s.display_id) === String(display.id));
-
-    // Some Linux capture backends do not expose display_id. In that case map the
-    // chosen monitor to the corresponding screen source instead of always using
-    // sources[0], which could silently capture the other monitor.
-    if (!source) {
-      const displays = getOrderedDisplays();
-      const displayIndex = displays.findIndex((d) => String(d.id) === String(display.id));
-      if (displayIndex >= 0) source = sources[displayIndex];
+    const frozenDisplays = [];
+    for (let index = 0; index < displays.length; index += 1) {
+      const display = displays[index];
+      const image = await getCaptureForDisplay(display, index);
+      frozenDisplays.push({ display, image });
     }
 
-    if (!source) source = sources[0];
-    if (!source || source.thumbnail.isEmpty()) throw new Error('Geen schermbron beschikbaar.');
+    const overlays = [];
+    for (const frozen of frozenDisplays) {
+      overlays.push(await createOverlay(frozen.display, frozen.image));
+    }
 
-    captured = { display, image: source.thumbnail };
-    overlayWindow = new BrowserWindow({
-      ...display.bounds,
-      show: false,
-      frame: false,
-      resizable: false,
-      alwaysOnTop: true,
-      skipTaskbar: true,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-      },
-    });
+    // Show all overlays together. The desktop now behaves like one global
+    // screenshot-selection mode: just move to either monitor and drag.
+    for (const overlay of overlays) overlay.showInactive();
 
-    overlayWindow.on('closed', () => {
-      overlayWindow = null;
-      captured = null;
-      restoreMain();
-    });
+    const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const active = overlays.find((overlay) => {
+      const capture = captures.get(overlay.webContents.id);
+      return capture && String(capture.display.id) === String(cursorDisplay.id);
+    }) || overlays[0];
 
-    await overlayWindow.loadFile(path.join(__dirname, 'screenshot-overlay.html'));
-    await overlayWindow.webContents.executeJavaScript(
-      `window.__vibezSetScreenshot(${JSON.stringify(captured.image.toDataURL())});`
-    );
-    overlayWindow.show();
-    overlayWindow.focus();
+    if (active && !active.isDestroyed()) active.focus();
   } catch (error) {
     console.error('Schermafdruk mislukt:', error);
-    closeOverlay(false);
+    closeOverlays(false);
     restoreMain();
     dialog.showMessageBox({
       type: 'error',
@@ -207,9 +225,9 @@ async function startScreenshot(selectedDisplay) {
   }
 }
 
-function crop(rect) {
-  if (!captured || !rect) return null;
-  const { image, display } = captured;
+function crop(capture, rect) {
+  if (!capture || !rect) return null;
+  const { image, display } = capture;
   const pixels = image.getSize();
   const sx = pixels.width / display.bounds.width;
   const sy = pixels.height / display.bounds.height;
@@ -249,10 +267,6 @@ async function attach(image) {
 
   restoreMain();
   clipboard.writeImage(image);
-
-  // Do not serialize the PNG into a giant JavaScript/base64 string. Large or
-  // detailed captures could exceed renderer/DOM limits. Web chat clients already
-  // support image paste, so put the native image on the clipboard and paste it.
   await wait(120);
   await focusComposer();
   await wait(80);
@@ -266,19 +280,21 @@ function registerIpc() {
   ipcMain.on('vibez:screenshot:start', (event) => {
     const fromMain = mainWindow && event.sender.id === mainWindow.webContents.id;
     const fromButton = buttonWindow && event.sender.id === buttonWindow.webContents.id;
-    if (fromMain || fromButton) chooseScreenshotDisplay();
+    if (fromMain || fromButton) startScreenshot();
   });
 
   ipcMain.on('vibez:screenshot:finish', async (event, rect) => {
-    if (!overlayWindow || event.sender.id !== overlayWindow.webContents.id) return;
-    const image = crop(rect);
-    closeOverlay(false);
+    const capture = captures.get(event.sender.id);
+    if (!capture) return;
+
+    const image = crop(capture, rect);
+    closeOverlays(false);
     restoreMain();
     if (image && !image.isEmpty()) await attach(image);
   });
 
   ipcMain.on('vibez:screenshot:cancel', (event) => {
-    if (overlayWindow && event.sender.id === overlayWindow.webContents.id) closeOverlay(true);
+    if (captures.has(event.sender.id)) closeOverlays(true);
   });
 }
 
@@ -300,7 +316,7 @@ function setupScreenshot(win) {
   win.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && String(input.key || '').toLowerCase() === 's') {
       event.preventDefault();
-      chooseScreenshotDisplay();
+      startScreenshot();
     }
   });
 }
