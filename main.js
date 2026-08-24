@@ -17,9 +17,6 @@ function manageScreenshotButtonPosition(win) {
           const GAP = 8;
           const STYLE_ID = 'vibez-screenshot-position-manager-style';
 
-          // One authoritative CSS rule owns position, visibility and contextual sizing.
-          // screenshot.js may calculate a fallback position, but these !important
-          // values always win so the button cannot flicker between locations.
           let style = document.getElementById(STYLE_ID);
           if (!style) {
             style = document.createElement('style');
@@ -34,6 +31,18 @@ function manageScreenshotButtonPosition(win) {
             const computed = getComputedStyle(element);
             return rect.width > 0 && rect.height > 0 && computed.display !== 'none' && computed.visibility !== 'hidden';
           };
+
+          const normalizedText = (element) => [
+            element?.innerText,
+            element?.textContent,
+            element?.getAttribute?.('aria-label'),
+            element?.getAttribute?.('title')
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .replace(/\\s+/g, ' ')
+            .trim()
+            .toLowerCase();
 
           const isAuthenticationPage = () => {
             const title = (document.title || '').trim().toLowerCase();
@@ -50,36 +59,35 @@ function manageScreenshotButtonPosition(win) {
               bodyText.includes('hieronder inloggen') ||
               bodyText.includes('sign in with');
 
-            // The normal logged-out Vibe page can contain an "Aanmelden" button.
-            // Only hide Screenshot on the actual credential/social-login form.
             return hasEmailInput && (loginTitle || loginFormText);
           };
 
-          const findLoginButton = () => {
+          const findAuthControls = () => {
             const candidates = [...document.querySelectorAll('button,[role="button"],a')]
-              .filter((element) => element.id !== BUTTON_ID && visible(element));
+              .filter((element) => element.id !== BUTTON_ID && visible(element))
+              .map((element) => ({
+                element,
+                text: normalizedText(element),
+                rect: element.getBoundingClientRect()
+              }))
+              .filter((item) => item.rect.top >= 0 && item.rect.top < Math.min(120, window.innerHeight * 0.25));
 
-            return candidates.find((element) => {
-              const text = [
-                element.innerText,
-                element.textContent,
-                element.getAttribute('aria-label'),
-                element.getAttribute('title')
-              ]
-                .filter(Boolean)
-                .join(' ')
-                .replace(/\\s+/g, ' ')
-                .trim()
-                .toLowerCase();
+            const signInLabels = new Set(['inloggen', 'login', 'log in', 'sign in']);
+            const signUpLabels = new Set(['aanmelden', 'sign up', 'register', 'registreren', 'create account']);
 
-              return text === 'aanmelden' ||
-                text === 'inloggen' ||
-                text === 'login' ||
-                text === 'log in' ||
-                text === 'sign in' ||
-                text.includes('aanmelden') ||
-                text.includes('sign in');
-            }) || null;
+            const signIn = candidates.find((item) => signInLabels.has(item.text)) || null;
+            const signUp = candidates.find((item) => signUpLabels.has(item.text)) || null;
+            const authItems = [signIn, signUp].filter(Boolean);
+
+            if (!authItems.length) return null;
+
+            const leftmost = authItems.slice().sort((a, b) => a.rect.left - b.rect.left)[0];
+            const sizeSource = signUp || signIn || leftmost;
+
+            return {
+              positionAnchor: leftmost,
+              sizeSource
+            };
           };
 
           const root = document.documentElement;
@@ -103,9 +111,9 @@ function manageScreenshotButtonPosition(win) {
             root.style.setProperty('--vibez-screenshot-font-size', '13px');
           };
 
-          const setLoginSize = (loginRect) => {
-            const width = Math.max(1, Math.round(loginRect.width) + 6);
-            const height = Math.max(1, Math.round(loginRect.height) + 2);
+          const setLoggedOutSize = (referenceRect) => {
+            const width = Math.max(1, Math.round(referenceRect.width) + 6);
+            const height = Math.max(1, Math.round(referenceRect.height) + 2);
             root.style.setProperty('--vibez-screenshot-width', width + 'px');
             root.style.setProperty('--vibez-screenshot-min-width', width + 'px');
             root.style.setProperty('--vibez-screenshot-height', height + 'px');
@@ -125,20 +133,21 @@ function manageScreenshotButtonPosition(win) {
             }
 
             setDisplay('inline-flex');
-            const loginButton = findLoginButton();
+            const auth = findAuthControls();
 
-            if (loginButton) {
-              const loginRect = loginButton.getBoundingClientRect();
-              const size = setLoginSize(loginRect);
-              const left = Math.max(8, Math.round(loginRect.left - size.width - GAP));
-              const top = Math.max(8, Math.round(loginRect.top + (loginRect.height - size.height) / 2));
+            if (auth) {
+              const anchorRect = auth.positionAnchor.rect;
+              const referenceRect = auth.sizeSource.rect;
+              const size = setLoggedOutSize(referenceRect);
+
+              const left = Math.max(8, Math.round(anchorRect.left - size.width - GAP));
+              const top = Math.max(8, Math.round(referenceRect.top + (referenceRect.height - size.height) / 2));
 
               setPosition(left + 'px', 'auto', top + 'px');
-              if (button) button.dataset.vibezPositionMode = 'login';
+              if (button) button.dataset.vibezPositionMode = 'logged-out';
               return;
             }
 
-            // Logged-in Vibe position: next to Incognito, using the original button size.
             setLoggedInSize();
             setPosition('auto', '74px', '9px');
             if (button) button.dataset.vibezPositionMode = 'incognito';
@@ -154,8 +163,6 @@ function manageScreenshotButtonPosition(win) {
             });
           };
 
-          // Observe structural changes only. Attribute changes include our own CSS
-          // variables and previously caused the Screenshot button to flicker.
           const observer = new MutationObserver(schedule);
           observer.observe(document.documentElement, { childList: true, subtree: true });
           window.addEventListener('resize', schedule, { passive: true });
@@ -185,7 +192,6 @@ function createWindow() {
 
   mainWindow.loadURL('https://vibe.mistral.ai/');
 
-  // Register the position manager first so its CSS is ready before the button appears.
   manageScreenshotButtonPosition(mainWindow);
   setupScreenshot(mainWindow);
 
@@ -197,7 +203,6 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Initialize auto-updater ONLY in production (packaged app)
   if (app.isPackaged) {
     autoUpdater.checkForUpdatesAndNotify();
 
