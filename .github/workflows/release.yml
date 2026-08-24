@@ -1,5 +1,6 @@
 name: Release VibeZ
 
+# Builds and publishes the current package.json version for Linux.
 on:
   push:
     branches:
