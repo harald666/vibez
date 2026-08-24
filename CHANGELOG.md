@@ -1,0 +1,30 @@
+# Changelog
+
+All notable changes to VibeZ will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [1.1.0] - 2026-08-24
+
+### Added
+- Added a native **Screenshot** button to VibeZ.
+- Added multi-monitor screenshot selection and capture.
+- Screenshots are automatically inserted into the Vibe chat composer after capture.
+- Added automatic update support through GitHub Releases.
+- Added an automated Linux release workflow for AppImage, DEB and RPM packages.
+- Added update metadata generation through `latest-linux.yml` for `electron-updater`.
+
+### Changed
+- Integrated the Screenshot button into the existing Vibe interface.
+- Improved Screenshot button placement for logged-in and logged-out views.
+- Kept the Screenshot button hidden on the authentication form.
+- Stabilized Screenshot button positioning so it no longer jumps when Vibe action buttons appear or disappear.
+
+### Fixed
+- Fixed Screenshot button overlap with Vibe's star and share controls.
+- Fixed release workflow version detection.
+
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/harald666/vibez/releases/tag/v1.1.0
