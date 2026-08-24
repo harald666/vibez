@@ -17,14 +17,14 @@ function manageScreenshotButtonPosition(win) {
           const GAP = 8;
           const STYLE_ID = 'vibez-screenshot-position-manager-style';
 
-          // One authoritative CSS rule owns position and page visibility.
+          // One authoritative CSS rule owns position, visibility and contextual sizing.
           // screenshot.js may calculate a fallback position, but these !important
           // values always win so the button cannot flicker between locations.
           let style = document.getElementById(STYLE_ID);
           if (!style) {
             style = document.createElement('style');
             style.id = STYLE_ID;
-            style.textContent = '#vibez-screenshot-button { left: var(--vibez-screenshot-left, auto) !important; right: var(--vibez-screenshot-right, 74px) !important; top: var(--vibez-screenshot-top, 9px) !important; display: var(--vibez-screenshot-display, inline-flex) !important; }';
+            style.textContent = '#vibez-screenshot-button { left: var(--vibez-screenshot-left, auto) !important; right: var(--vibez-screenshot-right, 74px) !important; top: var(--vibez-screenshot-top, 9px) !important; display: var(--vibez-screenshot-display, inline-flex) !important; width: var(--vibez-screenshot-width, auto) !important; min-width: var(--vibez-screenshot-min-width, 118px) !important; height: var(--vibez-screenshot-height, 36px) !important; padding: var(--vibez-screenshot-padding, 0 12px) !important; gap: var(--vibez-screenshot-gap, 7px) !important; font-size: var(--vibez-screenshot-font-size, 13px) !important; }';
             (document.head || document.documentElement).appendChild(style);
           }
 
@@ -82,15 +82,36 @@ function manageScreenshotButtonPosition(win) {
             }) || null;
           };
 
+          const root = document.documentElement;
+
           const setPosition = (left, right, top) => {
-            const root = document.documentElement;
             root.style.setProperty('--vibez-screenshot-left', left);
             root.style.setProperty('--vibez-screenshot-right', right);
             root.style.setProperty('--vibez-screenshot-top', top);
           };
 
           const setDisplay = (display) => {
-            document.documentElement.style.setProperty('--vibez-screenshot-display', display);
+            root.style.setProperty('--vibez-screenshot-display', display);
+          };
+
+          const setLoggedInSize = () => {
+            root.style.setProperty('--vibez-screenshot-width', 'auto');
+            root.style.setProperty('--vibez-screenshot-min-width', '118px');
+            root.style.setProperty('--vibez-screenshot-height', '36px');
+            root.style.setProperty('--vibez-screenshot-padding', '0 12px');
+            root.style.setProperty('--vibez-screenshot-gap', '7px');
+            root.style.setProperty('--vibez-screenshot-font-size', '13px');
+          };
+
+          const setLoginSize = (loginRect) => {
+            const width = Math.max(1, Math.round(loginRect.width));
+            const height = Math.max(1, Math.round(loginRect.height));
+            root.style.setProperty('--vibez-screenshot-width', width + 'px');
+            root.style.setProperty('--vibez-screenshot-min-width', width + 'px');
+            root.style.setProperty('--vibez-screenshot-height', height + 'px');
+            root.style.setProperty('--vibez-screenshot-padding', '0 6px');
+            root.style.setProperty('--vibez-screenshot-gap', '5px');
+            root.style.setProperty('--vibez-screenshot-font-size', '12px');
           };
 
           const updatePosition = () => {
@@ -107,9 +128,10 @@ function manageScreenshotButtonPosition(win) {
 
             if (loginButton) {
               const loginRect = loginButton.getBoundingClientRect();
-              const buttonRect = button?.getBoundingClientRect();
-              const width = Math.ceil(buttonRect?.width || 118);
-              const height = Math.ceil(buttonRect?.height || 36);
+              setLoginSize(loginRect);
+
+              const width = Math.round(loginRect.width);
+              const height = Math.round(loginRect.height);
               const left = Math.max(8, Math.round(loginRect.left - width - GAP));
               const top = Math.max(8, Math.round(loginRect.top + (loginRect.height - height) / 2));
 
@@ -118,7 +140,8 @@ function manageScreenshotButtonPosition(win) {
               return;
             }
 
-            // Logged-in Vibe position: next to Incognito.
+            // Logged-in Vibe position: next to Incognito, using the original button size.
+            setLoggedInSize();
             setPosition('auto', '74px', '9px');
             if (button) button.dataset.vibezPositionMode = 'incognito';
           };
