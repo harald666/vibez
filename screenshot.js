@@ -70,7 +70,25 @@ async function installScreenshotButton() {
             if (clickable && clickable.id !== BUTTON_ID && visible(clickable)) return clickable;
           }
 
-          return null;
+          // Vibe's Incognito action can be icon-only without an accessible name.
+          // In that case use the right-most small action button near the top of the page.
+          const topRightActions = [...document.querySelectorAll('button,[role="button"]')]
+            .filter((element) => {
+              if (element.id === BUTTON_ID || !visible(element)) return false;
+              const rect = element.getBoundingClientRect();
+              return rect.top >= 0 &&
+                rect.top < Math.min(140, window.innerHeight * 0.35) &&
+                rect.right > window.innerWidth - Math.min(170, window.innerWidth * 0.55) &&
+                rect.width >= 16 && rect.width <= 72 &&
+                rect.height >= 16 && rect.height <= 72;
+            })
+            .sort((a, b) => {
+              const ar = a.getBoundingClientRect();
+              const br = b.getBoundingClientRect();
+              return (br.right - ar.right) || (ar.top - br.top);
+            });
+
+          return topRightActions[0] || null;
         };
 
         const createButton = () => {
