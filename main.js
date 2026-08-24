@@ -111,7 +111,7 @@ function manageScreenshotButtonPosition(win) {
             root.style.setProperty('--vibez-screenshot-height', height + 'px');
             root.style.setProperty('--vibez-screenshot-padding', '0 6px');
             root.style.setProperty('--vibez-screenshot-gap', '5px');
-            root.style.setProperty('--vibez-screenshot-font-size', '12px');
+            root.style.setProperty('--vibez-screenshot-font-size', '11px');
           };
 
           const updatePosition = () => {
