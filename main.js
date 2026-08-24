@@ -17,13 +17,14 @@ function manageScreenshotButtonPosition(win) {
           const GAP = 8;
           const STYLE_ID = 'vibez-screenshot-position-manager-style';
 
-          // One authoritative CSS rule owns the position. screenshot.js may still
-          // calculate a fallback position, but these !important values always win.
+          // One authoritative CSS rule owns position and page visibility.
+          // screenshot.js may calculate a fallback position, but these !important
+          // values always win so the button cannot flicker between locations.
           let style = document.getElementById(STYLE_ID);
           if (!style) {
             style = document.createElement('style');
             style.id = STYLE_ID;
-            style.textContent = '#vibez-screenshot-button { left: var(--vibez-screenshot-left, auto) !important; right: var(--vibez-screenshot-right, 74px) !important; top: var(--vibez-screenshot-top, 9px) !important; }';
+            style.textContent = '#vibez-screenshot-button { left: var(--vibez-screenshot-left, auto) !important; right: var(--vibez-screenshot-right, 74px) !important; top: var(--vibez-screenshot-top, 9px) !important; display: var(--vibez-screenshot-display, inline-flex) !important; }';
             (document.head || document.documentElement).appendChild(style);
           }
 
@@ -32,6 +33,26 @@ function manageScreenshotButtonPosition(win) {
             const rect = element.getBoundingClientRect();
             const computed = getComputedStyle(element);
             return rect.width > 0 && rect.height > 0 && computed.display !== 'none' && computed.visibility !== 'hidden';
+          };
+
+          const isAuthenticationPage = () => {
+            const title = (document.title || '').trim().toLowerCase();
+            const hasEmailInput = Boolean(document.querySelector('input[type="email"], input[autocomplete="email"], input[name*="email" i]'));
+            const bodyText = (document.body?.innerText || '').replace(/\\s+/g, ' ').toLowerCase();
+
+            const loginTitle = title.includes('inloggen') ||
+              title.includes('login') ||
+              title.includes('log in') ||
+              title.includes('sign in');
+
+            const loginFormText = bodyText.includes('wachtwoord vergeten') ||
+              bodyText.includes('forgot password') ||
+              bodyText.includes('hieronder inloggen') ||
+              bodyText.includes('sign in with');
+
+            // The normal logged-out Vibe page can contain an "Aanmelden" button.
+            // Only hide Screenshot on the actual credential/social-login form.
+            return hasEmailInput && (loginTitle || loginFormText);
           };
 
           const findLoginButton = () => {
@@ -68,8 +89,20 @@ function manageScreenshotButtonPosition(win) {
             root.style.setProperty('--vibez-screenshot-top', top);
           };
 
+          const setDisplay = (display) => {
+            document.documentElement.style.setProperty('--vibez-screenshot-display', display);
+          };
+
           const updatePosition = () => {
             const button = document.getElementById(BUTTON_ID);
+
+            if (isAuthenticationPage()) {
+              setDisplay('none');
+              if (button) button.dataset.vibezPositionMode = 'authentication';
+              return;
+            }
+
+            setDisplay('inline-flex');
             const loginButton = findLoginButton();
 
             if (loginButton) {
@@ -100,12 +133,12 @@ function manageScreenshotButtonPosition(win) {
             });
           };
 
-          // Only DOM structure changes are observed. Watching attributes caused our
-          // own position updates to trigger the observer repeatedly and produced flicker.
+          // Observe structural changes only. Attribute changes include our own CSS
+          // variables and previously caused the Screenshot button to flicker.
           const observer = new MutationObserver(schedule);
           observer.observe(document.documentElement, { childList: true, subtree: true });
           window.addEventListener('resize', schedule, { passive: true });
-          setInterval(updatePosition, 750);
+          setInterval(updatePosition, 500);
           updatePosition();
         })();
       `);
