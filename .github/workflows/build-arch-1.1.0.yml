@@ -1,0 +1,53 @@
+name: Build Arch package for VibeZ 1.1.0
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-arch-1.1.0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-arch-1-1-0:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout VibeZ v1.1.0
+        uses: actions/checkout@v4
+        with:
+          ref: v1.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Arch packaging dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Arch Linux package from v1.1.0
+        run: npx electron-builder --linux pacman --x64 --publish never
+
+      - name: Show generated package
+        run: ls -lh dist/
+
+      - name: Upload Arch package to existing v1.1.0 release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(dist/*.pacman dist/*.pkg.tar.zst)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo 'No Arch package was generated.' >&2
+            exit 1
+          fi
+          gh release upload v1.1.0 "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
