@@ -23,13 +23,7 @@ function manageScreenshotButtonPosition(win) {
           if (!style) {
             style = document.createElement('style');
             style.id = STYLE_ID;
-            style.textContent = `
-              #vibez-screenshot-button {
-                left: var(--vibez-screenshot-left, auto) !important;
-                right: var(--vibez-screenshot-right, 74px) !important;
-                top: var(--vibez-screenshot-top, 9px) !important;
-              }
-            `;
+            style.textContent = '#vibez-screenshot-button { left: var(--vibez-screenshot-left, auto) !important; right: var(--vibez-screenshot-right, 74px) !important; top: var(--vibez-screenshot-top, 9px) !important; }';
             (document.head || document.documentElement).appendChild(style);
           }
 
