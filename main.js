@@ -22,7 +22,7 @@ function setupScreenshotAuthLayout(win) {
             style.textContent = [
               'html.vibez-logged-out-home #vibez-screenshot-button {',
               '  left: auto !important;',
-              '  right: 194px !important;',
+              '  right: 206px !important;',
               '  top: 9px !important;',
               '  width: 118px !important;',
               '  min-width: 118px !important;',
