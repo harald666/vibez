@@ -1,6 +1,6 @@
 {
   "name": "VibeZ",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A graphical client for Mistral Vibe",
   "license": "MIT",
   "homepage": "https://github.com/harald666/vibez",
@@ -37,9 +37,22 @@
       "target": [
         "AppImage",
         "deb",
-        "rpm"
+        "rpm",
+        "pacman"
       ],
       "category": "Development"
+    },
+    "pacman": {
+      "depends": [
+        "gtk3",
+        "libnotify",
+        "nss",
+        "libxss",
+        "libxtst",
+        "xdg-utils",
+        "at-spi2-core",
+        "libsecret"
+      ]
     }
   }
 }
