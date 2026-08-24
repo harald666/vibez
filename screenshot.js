@@ -16,9 +16,6 @@ function getOrderedDisplays() {
   });
 }
 
-// Chromium's Linux screen-capture fallback normally exposes the primary screen
-// first. Physical left-to-right order can be different, which made two monitors
-// appear swapped in the selection overlay.
 function getCaptureOrderedDisplays() {
   const displays = getOrderedDisplays();
   const primaryId = String(screen.getPrimaryDisplay().id);
@@ -34,13 +31,62 @@ async function installScreenshotButton() {
     await mainWindow.webContents.executeJavaScript(`
       (() => {
         const BUTTON_ID = 'vibez-screenshot-button';
-        const GAP = 8;
+        const GAP = 10;
 
         const visible = (element) => {
           if (!element || !element.isConnected) return false;
           const rect = element.getBoundingClientRect();
           const style = getComputedStyle(element);
           return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+        };
+
+        const textOf = (element) => [
+          element?.innerText,
+          element?.textContent,
+          element?.getAttribute?.('aria-label'),
+          element?.getAttribute?.('title')
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\\s+/g, ' ')
+          .trim()
+          .toLowerCase();
+
+        const isAuthenticationPage = () => {
+          const title = (document.title || '').trim().toLowerCase();
+          const hasEmailInput = Boolean(document.querySelector('input[type="email"], input[autocomplete="email"], input[name*="email" i]'));
+          const bodyText = (document.body?.innerText || '').replace(/\\s+/g, ' ').toLowerCase();
+          return hasEmailInput && (
+            title.includes('inloggen') ||
+            title.includes('login') ||
+            title.includes('log in') ||
+            title.includes('sign in') ||
+            bodyText.includes('wachtwoord vergeten') ||
+            bodyText.includes('forgot password') ||
+            bodyText.includes('hieronder inloggen') ||
+            bodyText.includes('sign in with')
+          );
+        };
+
+        const findAuthControls = () => {
+          const nodes = [...document.querySelectorAll('button,[role="button"],a,span,p')]
+            .filter((element) => element.id !== BUTTON_ID && visible(element))
+            .map((element) => ({ element, text: textOf(element), rect: element.getBoundingClientRect() }))
+            .filter((item) => item.rect.top >= 0 && item.rect.top < Math.min(130, window.innerHeight * 0.3));
+
+          const signUpLabels = new Set(['aanmelden', 'sign up', 'register', 'registreren', 'create account']);
+          const signInLabels = new Set(['inloggen', 'login', 'log in', 'sign in']);
+
+          const signUp = nodes
+            .filter((item) => signUpLabels.has(item.text))
+            .sort((a, b) => (a.rect.width * a.rect.height) - (b.rect.width * b.rect.height))[0] || null;
+
+          const signIn = nodes
+            .filter((item) => signInLabels.has(item.text))
+            .sort((a, b) => (a.rect.width * a.rect.height) - (b.rect.width * b.rect.height))[0] || null;
+
+          if (!signUp && !signIn) return null;
+          return { signUp, signIn, sizeSource: signUp || signIn };
         };
 
         const findIncognito = () => {
@@ -61,20 +107,17 @@ async function installScreenshotButton() {
             .filter((element) => element.id !== BUTTON_ID && visible(element));
 
           for (const element of textNodes) {
-            const text = (element.getAttribute('aria-label') || element.getAttribute('title') || element.innerText || element.textContent || '')
-              .replace(/\\s+/g, ' ')
-              .trim()
-              .toLowerCase();
+            const text = textOf(element);
             if (!text || (!text.includes('incognito') && !text.includes('private'))) continue;
             const clickable = element.closest('button,[role="button"]');
             if (clickable && clickable.id !== BUTTON_ID && visible(clickable)) return clickable;
           }
 
-          // Vibe's Incognito action can be icon-only without an accessible name.
-          // In that case use the right-most small action button near the top of the page.
           const topRightActions = [...document.querySelectorAll('button,[role="button"]')]
             .filter((element) => {
               if (element.id === BUTTON_ID || !visible(element)) return false;
+              const text = textOf(element);
+              if (['aanmelden', 'inloggen', 'login', 'log in', 'sign in', 'sign up', 'register'].some((label) => text.includes(label))) return false;
               const rect = element.getBoundingClientRect();
               return rect.top >= 0 &&
                 rect.top < Math.min(140, window.innerHeight * 0.35) &&
@@ -138,12 +181,8 @@ async function installScreenshotButton() {
             button.style.transform = '';
             button.style.boxShadow = '0 10px 26px rgba(128, 28, 34, .28), 0 3px 10px rgba(0,0,0,.12)';
           });
-          button.addEventListener('mousedown', () => {
-            button.style.transform = 'scale(.985)';
-          });
-          button.addEventListener('mouseup', () => {
-            button.style.transform = '';
-          });
+          button.addEventListener('mousedown', () => { button.style.transform = 'scale(.985)'; });
+          button.addEventListener('mouseup', () => { button.style.transform = ''; });
           button.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -154,28 +193,76 @@ async function installScreenshotButton() {
           return button;
         };
 
+        const setLoggedInSize = (button) => {
+          button.style.width = 'auto';
+          button.style.minWidth = '118px';
+          button.style.height = '36px';
+          button.style.padding = '0 12px';
+          button.style.gap = '7px';
+          button.style.fontSize = '13px';
+        };
+
+        const setLoggedOutSize = (button, referenceRect) => {
+          const width = Math.max(94, Math.round(referenceRect.width) + 6);
+          const height = Math.max(34, Math.round(referenceRect.height) + 2);
+          button.style.width = width + 'px';
+          button.style.minWidth = width + 'px';
+          button.style.height = height + 'px';
+          button.style.padding = '0 6px';
+          button.style.gap = '5px';
+          button.style.fontSize = '11px';
+          return { width, height };
+        };
+
         const placeButton = () => {
           const button = createButton();
+
+          if (isAuthenticationPage()) {
+            button.style.display = 'none';
+            button.dataset.vibezPositionMode = 'authentication';
+            return true;
+          }
+
+          button.style.display = 'inline-flex';
+          const auth = findAuthControls();
+
+          if (auth) {
+            const referenceRect = auth.sizeSource.rect;
+            const size = setLoggedOutSize(button, referenceRect);
+            const authLeft = Math.min(
+              auth.signIn?.rect.left ?? Number.POSITIVE_INFINITY,
+              auth.signUp?.rect.left ?? Number.POSITIVE_INFINITY
+            );
+            const desiredLeft = Math.round(authLeft - size.width - GAP);
+            const left = window.innerWidth < 520 || desiredLeft < 12 ? 12 : desiredLeft;
+            const top = Math.max(8, Math.round(referenceRect.top + (referenceRect.height - size.height) / 2));
+
+            button.style.left = left + 'px';
+            button.style.right = 'auto';
+            button.style.top = top + 'px';
+            button.dataset.vibezPositionMode = 'logged-out';
+            return true;
+          }
+
+          setLoggedInSize(button);
           const incognito = findIncognito();
-          const width = Math.ceil(button.getBoundingClientRect().width || 118);
-          const height = Math.ceil(button.getBoundingClientRect().height || 36);
 
           if (incognito) {
             const rect = incognito.getBoundingClientRect();
-            let left = Math.round(rect.left - width - GAP);
-            if (left < 8) left = Math.round(rect.right + GAP);
-            const top = Math.round(rect.top + ((rect.height || height) - height) / 2);
+            const width = Math.ceil(button.getBoundingClientRect().width || 118);
+            const height = Math.ceil(button.getBoundingClientRect().height || 36);
+            const left = Math.max(8, Math.round(rect.left - width - 8));
+            const top = Math.max(8, Math.round(rect.top + ((rect.height || height) - height) / 2));
 
-            button.style.left = Math.max(8, left) + 'px';
+            button.style.left = left + 'px';
             button.style.right = 'auto';
-            button.style.top = Math.max(8, top) + 'px';
-            button.dataset.vibezAnchored = '1';
+            button.style.top = top + 'px';
+            button.dataset.vibezPositionMode = 'incognito';
           } else {
-            // Fixed fallback for Vibe's current layout: same row, directly left of Incognito.
             button.style.left = 'auto';
-            button.style.right = '54px';
-            button.style.top = '72px';
-            button.dataset.vibezAnchored = '0';
+            button.style.right = '74px';
+            button.style.top = '9px';
+            button.dataset.vibezPositionMode = 'logged-in-fallback';
           }
           return true;
         };
@@ -204,7 +291,7 @@ async function installScreenshotButton() {
           observer.observe(document.documentElement, { childList: true, subtree: true });
           window.addEventListener('resize', schedule, { passive: true });
           window.addEventListener('scroll', schedule, { passive: true, capture: true });
-          setInterval(schedule, 1500);
+          setInterval(schedule, 1000);
         }
 
         placeButton();
@@ -260,9 +347,6 @@ async function getCaptureForDisplay(display) {
 
   let source = sources.find((item) => String(item.display_id) === String(display.id));
 
-  // Some Linux backends leave display_id empty. Match Chromium's source order:
-  // primary monitor first, then the remaining monitors. This prevents the frozen
-  // images from being painted onto the opposite physical monitor.
   if (!source) {
     const captureOrder = getCaptureOrderedDisplays();
     const index = captureOrder.findIndex((item) => String(item.id) === String(display.id));
