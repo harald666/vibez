@@ -100,13 +100,15 @@ async function startScreenshot() {
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
     const factor = display.scaleFactor || 1;
     const size = {
-      width: Math.round(display.size.width * factor),
-      height: Math.round(display.size.height * factor),
+      width: Math.round(display.bounds.width * factor),
+      height: Math.round(display.bounds.height * factor),
     };
 
+    // Hide only our floating camera button. Keep the actual VibeZ window visible
+    // until after desktopCapturer has frozen the screen, so every part of VibeZ
+    // can itself be selected in the screenshot.
     if (buttonWindow && !buttonWindow.isDestroyed()) buttonWindow.hide();
-    mainWindow.hide();
-    await wait(250);
+    await wait(90);
 
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
@@ -170,50 +172,42 @@ function crop(rect) {
   return image.crop({ x, y, width, height });
 }
 
-async function attach(image) {
-  if (!mainWindow || mainWindow.isDestroyed() || !image || image.isEmpty()) return;
-  restoreMain();
-  clipboard.writeImage(image);
-  const dataUrl = image.toDataURL();
-  const fileName = `vibez-screenshot-${Date.now()}.png`;
-
+async function focusComposer() {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
   try {
-    const result = await mainWindow.webContents.executeJavaScript(`
+    return await mainWindow.webContents.executeJavaScript(`
       (() => {
-        const binary = atob(${JSON.stringify(dataUrl)}.split(',')[1] || '');
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const file = new File([bytes], ${JSON.stringify(fileName)}, { type: 'image/png' });
-        const inputs = [...document.querySelectorAll('input[type="file"]')].filter(i => !i.disabled);
-        const input = inputs.find(i => {
-          const accept = (i.accept || '').toLowerCase();
-          return !accept || accept.includes('image') || accept.includes('*');
-        }) || inputs[0];
-        if (input) {
-          const dt = new DataTransfer();
-          dt.items.add(file);
-          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'files')?.set;
-          if (setter) setter.call(input, dt.files);
-          else Object.defineProperty(input, 'files', { configurable: true, value: dt.files });
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          return true;
-        }
-        const editors = [...document.querySelectorAll('textarea,[contenteditable="true"]')]
+        const candidates = [...document.querySelectorAll('textarea,[contenteditable="true"],[role="textbox"]')]
           .filter(el => {
             const r = el.getBoundingClientRect();
             const s = getComputedStyle(el);
             return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden';
           });
-        editors.at(-1)?.focus();
-        return false;
+        const editor = candidates.at(-1);
+        if (!editor) return false;
+        editor.focus();
+        return true;
       })();
     `);
-    if (!result) mainWindow.webContents.paste();
   } catch (error) {
-    console.error('Schermafdruk toevoegen mislukt:', error);
-    mainWindow.webContents.paste();
+    console.error('Kon chatinvoer niet focussen:', error);
+    return false;
   }
+}
+
+async function attach(image) {
+  if (!mainWindow || mainWindow.isDestroyed() || !image || image.isEmpty()) return;
+
+  restoreMain();
+  clipboard.writeImage(image);
+
+  // Do not serialize the PNG into a giant JavaScript/base64 string. Large or
+  // detailed captures could exceed renderer/DOM limits. Web chat clients already
+  // support image paste, so put the native image on the clipboard and paste it.
+  await wait(120);
+  await focusComposer();
+  await wait(80);
+  mainWindow.webContents.paste();
 }
 
 function registerIpc() {
