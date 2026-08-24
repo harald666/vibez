@@ -5,7 +5,7 @@ const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
 
-function setupScreenshotAuthLayout(win) {
+function setupScreenshotLayout(win) {
   const install = async () => {
     if (!win || win.isDestroyed()) return;
 
@@ -20,31 +20,47 @@ function setupScreenshotAuthLayout(win) {
           if (!style) {
             style = document.createElement('style');
             style.id = STYLE_ID;
-            style.textContent = [
-              'html.vibez-logged-out-home #vibez-screenshot-button {',
-              '  left: auto !important;',
-              '  right: 219px !important;',
-              '  top: 9.5px !important;',
-              '  width: 118px !important;',
-              '  min-width: 118px !important;',
-              '  height: 34px !important;',
-              '  padding: 0 10px !important;',
-              '  gap: 5px !important;',
-              '  font-size: 11px !important;',
-              '  box-sizing: border-box !important;',
-              '}',
-              'html.vibez-logged-in-actions:not(.vibez-logged-out-home):not(.vibez-authentication-page) #vibez-screenshot-button {',
-              '  left: var(--vibez-screenshot-action-left) !important;',
-              '  right: auto !important;',
-              '}',
-              'html.vibez-authentication-page #vibez-screenshot-button {',
-              '  display: none !important;',
-              '}'
-            ].join('\\n');
             (document.head || document.documentElement).appendChild(style);
           }
 
-          const elementVisible = (element) => {
+          style.textContent = [
+            'html:not(.vibez-screenshot-layout-ready) #vibez-screenshot-button {',
+            '  visibility: hidden !important;',
+            '}',
+            'html.vibez-logged-out-home #vibez-screenshot-button {',
+            '  display: inline-flex !important;',
+            '  visibility: visible !important;',
+            '  left: auto !important;',
+            '  right: 219px !important;',
+            '  top: 9.5px !important;',
+            '  width: 118px !important;',
+            '  min-width: 118px !important;',
+            '  height: 34px !important;',
+            '  padding: 0 10px !important;',
+            '  gap: 5px !important;',
+            '  font-size: 11px !important;',
+            '  box-sizing: border-box !important;',
+            '}',
+            'html.vibez-logged-in #vibez-screenshot-button {',
+            '  display: inline-flex !important;',
+            '  visibility: visible !important;',
+            '  left: auto !important;',
+            '  right: 84px !important;',
+            '  top: 9px !important;',
+            '  width: auto !important;',
+            '  min-width: 118px !important;',
+            '  height: 36px !important;',
+            '  padding: 0 12px !important;',
+            '  gap: 7px !important;',
+            '  font-size: 13px !important;',
+            '  box-sizing: border-box !important;',
+            '}',
+            'html.vibez-authentication-page #vibez-screenshot-button {',
+            '  display: none !important;',
+            '}'
+          ].join('\\n');
+
+          const visible = (element) => {
             if (!element || !element.isConnected) return false;
             const rect = element.getBoundingClientRect();
             const computed = getComputedStyle(element);
@@ -54,7 +70,7 @@ function setupScreenshotAuthLayout(win) {
               computed.visibility !== 'hidden';
           };
 
-          const elementText = (element) => [
+          const textOf = (element) => [
             element?.innerText,
             element?.textContent,
             element?.getAttribute?.('aria-label'),
@@ -66,56 +82,38 @@ function setupScreenshotAuthLayout(win) {
             .trim()
             .toLowerCase();
 
-          const findShareAction = () => {
-            const shareLabels = ['delen', 'share'];
-            return [...document.querySelectorAll('button,[role="button"],a')]
-              .filter((element) => {
-                if (element.id === BUTTON_ID || !elementVisible(element)) return false;
-                const text = elementText(element);
-                if (!shareLabels.some((label) => text === label || text.includes(label))) return false;
-                const rect = element.getBoundingClientRect();
-                return rect.top >= 0 &&
-                  rect.top < Math.min(140, window.innerHeight * 0.35) &&
-                  rect.right > window.innerWidth - Math.min(140, window.innerWidth * 0.45) &&
-                  rect.width >= 16 && rect.width <= 72 &&
-                  rect.height >= 16 && rect.height <= 72;
-              })
-              .sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0] || null;
+          const hasTopRightAuthControl = () => {
+            const labels = new Set([
+              'aanmelden',
+              'inloggen',
+              'sign up',
+              'sign in',
+              'log in',
+              'register',
+              'registreren',
+              'create account'
+            ]);
+
+            return [...document.querySelectorAll('button,[role="button"],a')].some((element) => {
+              if (element.id === BUTTON_ID || !visible(element)) return false;
+              if (!labels.has(textOf(element))) return false;
+              const rect = element.getBoundingClientRect();
+              return rect.top >= 0 &&
+                rect.top < Math.min(130, window.innerHeight * 0.3) &&
+                rect.right > window.innerWidth - Math.min(240, window.innerWidth * 0.65);
+            });
           };
 
-          const findActionClusterLeft = (shareAction) => {
-            if (!shareAction) return null;
-            const shareRect = shareAction.getBoundingClientRect();
-            const shareCenterY = shareRect.top + (shareRect.height / 2);
-
-            const neighbors = [...document.querySelectorAll('button,[role="button"]')]
-              .filter((element) => {
-                if (element.id === BUTTON_ID || element === shareAction || !elementVisible(element)) return false;
-                const rect = element.getBoundingClientRect();
-                const centerY = rect.top + (rect.height / 2);
-                return Math.abs(centerY - shareCenterY) <= 8 &&
-                  rect.right <= shareRect.left + 3 &&
-                  rect.left >= shareRect.left - 90 &&
-                  rect.width >= 16 && rect.width <= 72 &&
-                  rect.height >= 16 && rect.height <= 72;
-              })
-              .map((element) => element.getBoundingClientRect());
-
-            return Math.min(shareRect.left, ...neighbors.map((rect) => rect.left));
-          };
-
-          const updateState = () => {
+          const isAuthenticationPage = () => {
             const title = (document.title || '').trim().toLowerCase();
             const bodyText = (document.body?.innerText || '')
               .replace(/\\s+/g, ' ')
-              .trim()
               .toLowerCase();
-
             const hasEmailInput = Boolean(
               document.querySelector('input[type="email"], input[autocomplete="email"], input[name*="email" i]')
             );
 
-            const authenticationPage = hasEmailInput && (
+            return hasEmailInput && (
               title.includes('inloggen') ||
               title.includes('login') ||
               title.includes('log in') ||
@@ -125,38 +123,23 @@ function setupScreenshotAuthLayout(win) {
               bodyText.includes('hieronder inloggen') ||
               bodyText.includes('sign in with')
             );
+          };
 
-            const loggedOutHome = !authenticationPage && (
-              bodyText.includes('aanmelden') ||
-              bodyText.includes('inloggen') ||
-              bodyText.includes('sign up') ||
-              bodyText.includes('sign in') ||
-              bodyText.includes('log in') ||
-              bodyText.includes('register')
-            );
-
-            const shareAction = !authenticationPage && !loggedOutHome ? findShareAction() : null;
-            const actionClusterLeft = findActionClusterLeft(shareAction);
-            const loggedInActions = Number.isFinite(actionClusterLeft);
-
-            if (loggedInActions) {
-              const screenshotButton = document.getElementById(BUTTON_ID);
-              const buttonWidth = Math.ceil(screenshotButton?.getBoundingClientRect().width || 118);
-              const left = Math.max(8, Math.round(actionClusterLeft - buttonWidth - 8));
-              const previous = root.style.getPropertyValue('--vibez-screenshot-action-left');
-              const next = left + 'px';
-              if (previous !== next) root.style.setProperty('--vibez-screenshot-action-left', next);
-            } else {
-              root.style.removeProperty('--vibez-screenshot-action-left');
-            }
+          const updateState = () => {
+            const authenticationPage = isAuthenticationPage();
+            const loggedOutHome = !authenticationPage && hasTopRightAuthControl();
+            const loggedIn = !authenticationPage && !loggedOutHome;
 
             root.classList.toggle('vibez-authentication-page', authenticationPage);
             root.classList.toggle('vibez-logged-out-home', loggedOutHome);
-            root.classList.toggle('vibez-logged-in-actions', loggedInActions);
+            root.classList.toggle('vibez-logged-in', loggedIn);
+            root.classList.remove('vibez-logged-in-actions');
+            root.style.removeProperty('--vibez-screenshot-action-left');
+            root.classList.add('vibez-screenshot-layout-ready');
           };
 
-          if (!window.__vibezScreenshotAuthLayoutInstalled) {
-            window.__vibezScreenshotAuthLayoutInstalled = true;
+          if (!window.__vibezStableScreenshotLayoutInstalled) {
+            window.__vibezStableScreenshotLayoutInstalled = true;
 
             let queued = false;
             const schedule = () => {
@@ -178,7 +161,7 @@ function setupScreenshotAuthLayout(win) {
         })();
       `);
     } catch (error) {
-      console.error('Kon Screenshot auth-layout niet installeren:', error);
+      console.error('Kon stabiele Screenshot-layout niet installeren:', error);
     }
   };
 
@@ -201,7 +184,7 @@ function createWindow() {
   });
 
   setupScreenshot(mainWindow);
-  setupScreenshotAuthLayout(mainWindow);
+  setupScreenshotLayout(mainWindow);
   mainWindow.loadURL('https://vibe.mistral.ai/');
 
   mainWindow.on('closed', () => {
