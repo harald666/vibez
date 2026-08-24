@@ -23,7 +23,7 @@ function setupScreenshotAuthLayout(win) {
               'html.vibez-logged-out-home #vibez-screenshot-button {',
               '  left: auto !important;',
               '  right: 219px !important;',
-              '  top: 9.5px !important;',
+              '  top: 8.5px !important;',
               '  width: 118px !important;',
               '  min-width: 118px !important;',
               '  height: 35px !important;',
