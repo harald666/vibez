@@ -171,9 +171,10 @@ async function installScreenshotButton() {
             button.style.top = Math.max(8, top) + 'px';
             button.dataset.vibezAnchored = '1';
           } else {
+            // Fixed fallback for Vibe's current layout: same row, directly left of Incognito.
             button.style.left = 'auto';
-            button.style.right = '18px';
-            button.style.top = '68px';
+            button.style.right = '54px';
+            button.style.top = '72px';
             button.dataset.vibezAnchored = '0';
           }
           return true;
