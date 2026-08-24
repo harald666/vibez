@@ -149,6 +149,7 @@ async function installScreenshotButton() {
             position: 'fixed',
             zIndex: '2147483646',
             display: 'inline-flex',
+            boxSizing: 'border-box',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '7px',
@@ -211,7 +212,8 @@ async function installScreenshotButton() {
           button.style.padding = '0 6px';
           button.style.gap = '5px';
           button.style.fontSize = '11px';
-          return { width, height };
+          const actualRect = button.getBoundingClientRect();
+          return { width: Math.ceil(actualRect.width), height: Math.ceil(actualRect.height) };
         };
 
         const placeButton = () => {
