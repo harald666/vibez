@@ -15,12 +15,29 @@ function manageScreenshotButtonPosition(win) {
 
           const BUTTON_ID = 'vibez-screenshot-button';
           const GAP = 8;
+          const STYLE_ID = 'vibez-screenshot-position-manager-style';
+
+          // One authoritative CSS rule owns the position. screenshot.js may still
+          // calculate a fallback position, but these !important values always win.
+          let style = document.getElementById(STYLE_ID);
+          if (!style) {
+            style = document.createElement('style');
+            style.id = STYLE_ID;
+            style.textContent = `
+              #vibez-screenshot-button {
+                left: var(--vibez-screenshot-left, auto) !important;
+                right: var(--vibez-screenshot-right, 74px) !important;
+                top: var(--vibez-screenshot-top, 9px) !important;
+              }
+            `;
+            (document.head || document.documentElement).appendChild(style);
+          }
 
           const visible = (element) => {
             if (!element || !element.isConnected) return false;
             const rect = element.getBoundingClientRect();
-            const style = getComputedStyle(element);
-            return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+            const computed = getComputedStyle(element);
+            return rect.width > 0 && rect.height > 0 && computed.display !== 'none' && computed.visibility !== 'hidden';
           };
 
           const findLoginButton = () => {
@@ -50,30 +67,33 @@ function manageScreenshotButtonPosition(win) {
             }) || null;
           };
 
+          const setPosition = (left, right, top) => {
+            const root = document.documentElement;
+            root.style.setProperty('--vibez-screenshot-left', left);
+            root.style.setProperty('--vibez-screenshot-right', right);
+            root.style.setProperty('--vibez-screenshot-top', top);
+          };
+
           const updatePosition = () => {
             const button = document.getElementById(BUTTON_ID);
-            if (!button || !visible(button)) return;
-
             const loginButton = findLoginButton();
+
             if (loginButton) {
               const loginRect = loginButton.getBoundingClientRect();
-              const buttonRect = button.getBoundingClientRect();
-              const width = Math.ceil(buttonRect.width || 118);
-              const height = Math.ceil(buttonRect.height || 36);
+              const buttonRect = button?.getBoundingClientRect();
+              const width = Math.ceil(buttonRect?.width || 118);
+              const height = Math.ceil(buttonRect?.height || 36);
               const left = Math.max(8, Math.round(loginRect.left - width - GAP));
               const top = Math.max(8, Math.round(loginRect.top + (loginRect.height - height) / 2));
 
-              button.style.setProperty('left', left + 'px', 'important');
-              button.style.setProperty('right', 'auto', 'important');
-              button.style.setProperty('top', top + 'px', 'important');
-              button.dataset.vibezPositionMode = 'login';
+              setPosition(left + 'px', 'auto', top + 'px');
+              if (button) button.dataset.vibezPositionMode = 'login';
               return;
             }
 
-            button.style.setProperty('left', 'auto', 'important');
-            button.style.setProperty('right', '74px', 'important');
-            button.style.setProperty('top', '9px', 'important');
-            button.dataset.vibezPositionMode = 'incognito';
+            // Logged-in Vibe position: next to Incognito.
+            setPosition('auto', '74px', '9px');
+            if (button) button.dataset.vibezPositionMode = 'incognito';
           };
 
           let queued = false;
@@ -86,8 +106,10 @@ function manageScreenshotButtonPosition(win) {
             });
           };
 
+          // Only DOM structure changes are observed. Watching attributes caused our
+          // own position updates to trigger the observer repeatedly and produced flicker.
           const observer = new MutationObserver(schedule);
-          observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+          observer.observe(document.documentElement, { childList: true, subtree: true });
           window.addEventListener('resize', schedule, { passive: true });
           setInterval(updatePosition, 750);
           updatePosition();
@@ -114,8 +136,10 @@ function createWindow() {
   });
 
   mainWindow.loadURL('https://vibe.mistral.ai/');
-  setupScreenshot(mainWindow);
+
+  // Register the position manager first so its CSS is ready before the button appears.
   manageScreenshotButtonPosition(mainWindow);
+  setupScreenshot(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
