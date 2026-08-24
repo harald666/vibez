@@ -1,11 +1,4 @@
-const {
-  BrowserWindow,
-  clipboard,
-  desktopCapturer,
-  dialog,
-  ipcMain,
-  screen,
-} = require('electron');
+const { BrowserWindow, clipboard, desktopCapturer, dialog, ipcMain, screen } = require('electron');
 const path = require('path');
 
 let mainWindow = null;
@@ -24,6 +17,17 @@ function getOrderedDisplays() {
   });
 }
 
+// Chromium's Linux screen-capture fallback normally exposes the primary screen
+// first. Physical left-to-right order can be different, which made two monitors
+// appear swapped in the selection overlay.
+function getCaptureOrderedDisplays() {
+  const displays = getOrderedDisplays();
+  const primaryId = String(screen.getPrimaryDisplay().id);
+  const primary = displays.find((display) => String(display.id) === primaryId);
+  const others = displays.filter((display) => String(display.id) !== primaryId);
+  return primary ? [primary, ...others] : displays;
+}
+
 function positionButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !buttonWindow || buttonWindow.isDestroyed()) return;
   const b = mainWindow.getBounds();
@@ -38,13 +42,7 @@ function positionButton() {
 function showButton() {
   if (!buttonWindow || buttonWindow.isDestroyed()) return;
   positionButton();
-  if (
-    captureInProgress ||
-    !mainWindow ||
-    mainWindow.isDestroyed() ||
-    mainWindow.isMinimized() ||
-    !mainWindow.isVisible()
-  ) {
+  if (captureInProgress || !mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || !mainWindow.isVisible()) {
     buttonWindow.hide();
     return;
   }
@@ -53,10 +51,7 @@ function showButton() {
 
 async function ensureButtonWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (buttonWindow && !buttonWindow.isDestroyed()) {
-    showButton();
-    return;
-  }
+  if (buttonWindow && !buttonWindow.isDestroyed()) return showButton();
 
   buttonWindow = new BrowserWindow({
     parent: mainWindow,
@@ -80,10 +75,7 @@ async function ensureButtonWindow() {
     },
   });
 
-  buttonWindow.on('closed', () => {
-    buttonWindow = null;
-  });
-
+  buttonWindow.on('closed', () => { buttonWindow = null; });
   await buttonWindow.loadFile(path.join(__dirname, 'screenshot-button.html'));
   showButton();
 }
@@ -101,17 +93,15 @@ function closeOverlays(restore = true) {
   const windows = overlayWindows.slice();
   overlayWindows = [];
   captures.clear();
-
   for (const win of windows) {
     if (!win || win.isDestroyed()) continue;
     win.removeAllListeners('closed');
     win.close();
   }
-
   if (restore) restoreMain();
 }
 
-async function getCaptureForDisplay(display, displayIndex) {
+async function getCaptureForDisplay(display) {
   const factor = display.scaleFactor || 1;
   const thumbnailSize = {
     width: Math.max(1, Math.round(display.bounds.width * factor)),
@@ -126,16 +116,16 @@ async function getCaptureForDisplay(display, displayIndex) {
 
   let source = sources.find((item) => String(item.display_id) === String(display.id));
 
-  // Some Linux capture backends do not expose display_id. Fall back to the
-  // left-to-right display/source order rather than silently choosing source 0.
-  if (!source && displayIndex >= 0 && displayIndex < sources.length) {
-    source = sources[displayIndex];
+  // Some Linux backends leave display_id empty. Match Chromium's source order:
+  // primary monitor first, then the remaining monitors. This prevents the frozen
+  // images from being painted onto the opposite physical monitor.
+  if (!source) {
+    const captureOrder = getCaptureOrderedDisplays();
+    const index = captureOrder.findIndex((item) => String(item.id) === String(display.id));
+    if (index >= 0 && index < sources.length) source = sources[index];
   }
 
-  if (!source || source.thumbnail.isEmpty()) {
-    throw new Error(`Geen schermbron beschikbaar voor scherm ${displayIndex + 1}.`);
-  }
-
+  if (!source || source.thumbnail.isEmpty()) throw new Error('Geen schermbron beschikbaar voor dit scherm.');
   return source.thumbnail;
 }
 
@@ -160,7 +150,6 @@ async function createOverlay(display, image) {
 
   overlayWindows.push(overlay);
   captures.set(overlay.webContents.id, { display, image });
-
   overlay.on('closed', () => {
     overlayWindows = overlayWindows.filter((win) => win !== overlay);
     captures.delete(overlay.webContents.id);
@@ -168,41 +157,28 @@ async function createOverlay(display, image) {
   });
 
   await overlay.loadFile(path.join(__dirname, 'screenshot-overlay.html'));
-  await overlay.webContents.executeJavaScript(
-    `window.__vibezSetScreenshot(${JSON.stringify(image.toDataURL())});`
-  );
-
+  await overlay.webContents.executeJavaScript(`window.__vibezSetScreenshot(${JSON.stringify(image.toDataURL())});`);
   return overlay;
 }
 
 async function startScreenshot() {
   if (!mainWindow || mainWindow.isDestroyed() || captureInProgress) return;
-
   captureInProgress = true;
 
   try {
     const displays = getOrderedDisplays();
     if (!displays.length) throw new Error('Geen beeldschermen gevonden.');
 
-    // Keep VibeZ visible. Hide only the floating camera button so it is not
-    // included in the frozen desktop image.
     if (buttonWindow && !buttonWindow.isDestroyed()) buttonWindow.hide();
     await wait(90);
 
     const frozenDisplays = [];
-    for (let index = 0; index < displays.length; index += 1) {
-      const display = displays[index];
-      const image = await getCaptureForDisplay(display, index);
-      frozenDisplays.push({ display, image });
+    for (const display of displays) {
+      frozenDisplays.push({ display, image: await getCaptureForDisplay(display) });
     }
 
     const overlays = [];
-    for (const frozen of frozenDisplays) {
-      overlays.push(await createOverlay(frozen.display, frozen.image));
-    }
-
-    // Show all overlays together. The desktop now behaves like one global
-    // screenshot-selection mode: just move to either monitor and drag.
+    for (const frozen of frozenDisplays) overlays.push(await createOverlay(frozen.display, frozen.image));
     for (const overlay of overlays) overlay.showInactive();
 
     const cursorDisplay = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
@@ -210,7 +186,6 @@ async function startScreenshot() {
       const capture = captures.get(overlay.webContents.id);
       return capture && String(capture.display.id) === String(cursorDisplay.id);
     }) || overlays[0];
-
     if (active && !active.isDestroyed()) active.focus();
   } catch (error) {
     console.error('Schermafdruk mislukt:', error);
@@ -264,7 +239,6 @@ async function focusComposer() {
 
 async function attach(image) {
   if (!mainWindow || mainWindow.isDestroyed() || !image || image.isEmpty()) return;
-
   restoreMain();
   clipboard.writeImage(image);
   await wait(120);
@@ -286,7 +260,6 @@ function registerIpc() {
   ipcMain.on('vibez:screenshot:finish', async (event, rect) => {
     const capture = captures.get(event.sender.id);
     if (!capture) return;
-
     const image = crop(capture, rect);
     closeOverlays(false);
     restoreMain();
