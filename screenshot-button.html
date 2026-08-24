@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    html,body{width:100%;height:100%;margin:0;background:transparent;overflow:hidden}
+    body{display:grid;place-items:center}
+    button{
+      width:46px;height:46px;border-radius:50%;
+      border:1px solid rgba(127,127,127,.38);
+      background:rgba(32,33,36,.94);color:#fff;
+      font-size:22px;line-height:1;cursor:pointer;padding:0;
+      box-shadow:0 4px 14px rgba(0,0,0,.28);
+      -webkit-app-region:no-drag;
+    }
+    button:hover{transform:scale(1.04);background:rgba(48,49,52,.98)}
+    button:active{transform:scale(.97)}
+    button:focus-visible{outline:2px solid white;outline-offset:2px}
+  </style>
+</head>
+<body>
+  <button id="capture" type="button" title="Schermafdruk maken (Ctrl+Shift+S)" aria-label="Schermafdruk maken">📷</button>
+  <script>
+    document.getElementById('capture').addEventListener('click', () => {
+      window.vibez?.captureScreenshot();
+    });
+  </script>
+</body>
+</html>
