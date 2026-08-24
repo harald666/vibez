@@ -9,16 +9,77 @@ const {
 const path = require('path');
 
 let mainWindow = null;
+let buttonWindow = null;
 let overlayWindow = null;
 let captured = null;
 let ipcRegistered = false;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function positionButton() {
+  if (!mainWindow || mainWindow.isDestroyed() || !buttonWindow || buttonWindow.isDestroyed()) return;
+  const b = mainWindow.getBounds();
+  buttonWindow.setBounds({
+    x: Math.round(b.x + b.width - 70),
+    y: Math.round(b.y + b.height - 140),
+    width: 52,
+    height: 52,
+  });
+}
+
+function showButton() {
+  if (!buttonWindow || buttonWindow.isDestroyed()) return;
+  positionButton();
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || !mainWindow.isVisible()) {
+    buttonWindow.hide();
+    return;
+  }
+  buttonWindow.showInactive();
+}
+
+async function ensureButtonWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (buttonWindow && !buttonWindow.isDestroyed()) {
+    showButton();
+    return;
+  }
+
+  buttonWindow = new BrowserWindow({
+    parent: mainWindow,
+    width: 52,
+    height: 52,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  buttonWindow.on('closed', () => {
+    buttonWindow = null;
+  });
+
+  await buttonWindow.loadFile(path.join(__dirname, 'screenshot-button.html'));
+  showButton();
+}
+
 function restoreMain() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   if (!mainWindow.isVisible()) mainWindow.show();
+  if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.focus();
+  setTimeout(showButton, 80);
 }
 
 function closeOverlay(restore = true) {
@@ -32,36 +93,6 @@ function closeOverlay(restore = true) {
   if (restore) restoreMain();
 }
 
-async function injectButton() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (!mainWindow.webContents.getURL().startsWith('https://vibe.mistral.ai/')) return;
-
-  try {
-    await mainWindow.webContents.executeJavaScript(`
-      (() => {
-        if (!document.body || document.getElementById('vibez-screenshot-button')) return;
-        const button = document.createElement('button');
-        button.id = 'vibez-screenshot-button';
-        button.type = 'button';
-        button.textContent = '📷';
-        button.title = 'Schermafdruk maken (Ctrl+Shift+S)';
-        button.setAttribute('aria-label', 'Schermafdruk maken');
-        Object.assign(button.style, {
-          position: 'fixed', right: '18px', bottom: '88px', width: '46px', height: '46px',
-          borderRadius: '50%', border: '1px solid rgba(127,127,127,.35)',
-          background: 'rgba(32,33,36,.92)', color: '#fff', fontSize: '22px',
-          cursor: 'pointer', zIndex: '2147483647', padding: '0',
-          boxShadow: '0 4px 14px rgba(0,0,0,.22)'
-        });
-        button.addEventListener('click', () => window.vibez?.captureScreenshot());
-        document.body.appendChild(button);
-      })();
-    `);
-  } catch (error) {
-    console.error('Kon schermafdrukknop niet toevoegen:', error);
-  }
-}
-
 async function startScreenshot() {
   if (!mainWindow || mainWindow.isDestroyed() || overlayWindow) return;
 
@@ -73,6 +104,7 @@ async function startScreenshot() {
       height: Math.round(display.size.height * factor),
     };
 
+    if (buttonWindow && !buttonWindow.isDestroyed()) buttonWindow.hide();
     mainWindow.hide();
     await wait(250);
 
@@ -189,7 +221,9 @@ function registerIpc() {
   ipcRegistered = true;
 
   ipcMain.on('vibez:screenshot:start', (event) => {
-    if (mainWindow && event.sender.id === mainWindow.webContents.id) startScreenshot();
+    const fromMain = mainWindow && event.sender.id === mainWindow.webContents.id;
+    const fromButton = buttonWindow && event.sender.id === buttonWindow.webContents.id;
+    if (fromMain || fromButton) startScreenshot();
   });
 
   ipcMain.on('vibez:screenshot:finish', async (event, rect) => {
@@ -208,7 +242,18 @@ function registerIpc() {
 function setupScreenshot(win) {
   mainWindow = win;
   registerIpc();
-  win.webContents.on('did-finish-load', injectButton);
+
+  win.webContents.on('did-finish-load', () => {
+    ensureButtonWindow().catch((error) => console.error('Kon schermafdrukknop niet openen:', error));
+  });
+
+  win.on('move', positionButton);
+  win.on('resize', positionButton);
+  win.on('minimize', () => buttonWindow && !buttonWindow.isDestroyed() && buttonWindow.hide());
+  win.on('restore', showButton);
+  win.on('show', showButton);
+  win.on('hide', () => buttonWindow && !buttonWindow.isDestroyed() && buttonWindow.hide());
+
   win.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && String(input.key || '').toLowerCase() === 's') {
       event.preventDefault();
