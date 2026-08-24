@@ -1,5 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const path = require('path');
+const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
 
@@ -8,6 +10,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       hardwareAcceleration: false,
@@ -17,6 +20,7 @@ function createWindow() {
   });
 
   mainWindow.loadURL('https://vibe.mistral.ai/');
+  setupScreenshot(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
