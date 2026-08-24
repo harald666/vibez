@@ -14,7 +14,7 @@ function manageScreenshotButtonPosition(win) {
           window.__vibezScreenshotPositionManagerInstalled = true;
 
           const BUTTON_ID = 'vibez-screenshot-button';
-          const GAP = 8;
+          const GAP = 10;
           const STYLE_ID = 'vibez-screenshot-position-manager-style';
 
           let style = document.getElementById(STYLE_ID);
@@ -62,31 +62,59 @@ function manageScreenshotButtonPosition(win) {
             return hasEmailInput && (loginTitle || loginFormText);
           };
 
-          const findAuthControls = () => {
-            const candidates = [...document.querySelectorAll('button,[role="button"],a')]
-              .filter((element) => element.id !== BUTTON_ID && visible(element))
-              .map((element) => ({
-                element,
-                text: normalizedText(element),
-                rect: element.getBoundingClientRect()
-              }))
-              .filter((item) => item.rect.top >= 0 && item.rect.top < Math.min(120, window.innerHeight * 0.25));
+          const exactLabels = (labels, selector) => [...document.querySelectorAll(selector)]
+            .filter((element) => element.id !== BUTTON_ID && visible(element))
+            .map((element) => ({
+              element,
+              text: normalizedText(element),
+              rect: element.getBoundingClientRect()
+            }))
+            .filter((item) =>
+              labels.has(item.text) &&
+              item.rect.top >= 0 &&
+              item.rect.top < Math.min(120, window.innerHeight * 0.25)
+            )
+            .sort((a, b) => {
+              const areaA = a.rect.width * a.rect.height;
+              const areaB = b.rect.width * b.rect.height;
+              return areaA - areaB;
+            });
 
+          const findAuthControls = () => {
             const signInLabels = new Set(['inloggen', 'login', 'log in', 'sign in']);
             const signUpLabels = new Set(['aanmelden', 'sign up', 'register', 'registreren', 'create account']);
 
-            const signIn = candidates.find((item) => signInLabels.has(item.text)) || null;
-            const signUp = candidates.find((item) => signUpLabels.has(item.text)) || null;
-            const authItems = [signIn, signUp].filter(Boolean);
+            // Aanmelden is normally a real button and is the best source for button sizing.
+            const signUp = exactLabels(signUpLabels, 'button,[role="button"],a')[0] ||
+              exactLabels(signUpLabels, 'span,div,p')[0] || null;
 
-            if (!authItems.length) return null;
+            // Inloggen in Vibe can be plain text instead of a button, so search broadly.
+            const signIn = exactLabels(signInLabels, 'button,[role="button"],a,span,div,p')[0] || null;
 
-            const leftmost = authItems.slice().sort((a, b) => a.rect.left - b.rect.left)[0];
-            const sizeSource = signUp || signIn || leftmost;
+            if (!signUp && !signIn) return null;
+
+            const sizeSource = signUp || signIn;
+            let anchorLeft;
+            let anchorTop;
+            let anchorHeight;
+
+            if (signIn) {
+              anchorLeft = signIn.rect.left;
+              anchorTop = signIn.rect.top;
+              anchorHeight = signIn.rect.height;
+            } else {
+              // If Vibe renders Inloggen in a way we cannot detect, reserve enough
+              // room for it so Screenshot can never overlap the auth text.
+              anchorLeft = Math.max(8, signUp.rect.left - 78);
+              anchorTop = signUp.rect.top;
+              anchorHeight = signUp.rect.height;
+            }
 
             return {
-              positionAnchor: leftmost,
-              sizeSource
+              anchorLeft,
+              anchorTop,
+              anchorHeight,
+              sizeRect: sizeSource.rect
             };
           };
 
@@ -136,12 +164,9 @@ function manageScreenshotButtonPosition(win) {
             const auth = findAuthControls();
 
             if (auth) {
-              const anchorRect = auth.positionAnchor.rect;
-              const referenceRect = auth.sizeSource.rect;
-              const size = setLoggedOutSize(referenceRect);
-
-              const left = Math.max(8, Math.round(anchorRect.left - size.width - GAP));
-              const top = Math.max(8, Math.round(referenceRect.top + (referenceRect.height - size.height) / 2));
+              const size = setLoggedOutSize(auth.sizeRect);
+              const left = Math.max(8, Math.round(auth.anchorLeft - size.width - GAP));
+              const top = Math.max(8, Math.round(auth.anchorTop + (auth.anchorHeight - size.height) / 2));
 
               setPosition(left + 'px', 'auto', top + 'px');
               if (button) button.dataset.vibezPositionMode = 'logged-out';
