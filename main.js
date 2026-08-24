@@ -66,6 +66,44 @@ function setupScreenshotAuthLayout(win) {
             .trim()
             .toLowerCase();
 
+          const findShareAction = () => {
+            const shareLabels = ['delen', 'share'];
+            return [...document.querySelectorAll('button,[role="button"],a')]
+              .filter((element) => {
+                if (element.id === BUTTON_ID || !elementVisible(element)) return false;
+                const text = elementText(element);
+                if (!shareLabels.some((label) => text === label || text.includes(label))) return false;
+                const rect = element.getBoundingClientRect();
+                return rect.top >= 0 &&
+                  rect.top < Math.min(140, window.innerHeight * 0.35) &&
+                  rect.right > window.innerWidth - Math.min(140, window.innerWidth * 0.45) &&
+                  rect.width >= 16 && rect.width <= 72 &&
+                  rect.height >= 16 && rect.height <= 72;
+              })
+              .sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0] || null;
+          };
+
+          const findActionClusterLeft = (shareAction) => {
+            if (!shareAction) return null;
+            const shareRect = shareAction.getBoundingClientRect();
+            const shareCenterY = shareRect.top + (shareRect.height / 2);
+
+            const neighbors = [...document.querySelectorAll('button,[role="button"]')]
+              .filter((element) => {
+                if (element.id === BUTTON_ID || element === shareAction || !elementVisible(element)) return false;
+                const rect = element.getBoundingClientRect();
+                const centerY = rect.top + (rect.height / 2);
+                return Math.abs(centerY - shareCenterY) <= 8 &&
+                  rect.right <= shareRect.left + 3 &&
+                  rect.left >= shareRect.left - 90 &&
+                  rect.width >= 16 && rect.width <= 72 &&
+                  rect.height >= 16 && rect.height <= 72;
+              })
+              .map((element) => element.getBoundingClientRect());
+
+            return Math.min(shareRect.left, ...neighbors.map((rect) => rect.left));
+          };
+
           const updateState = () => {
             const title = (document.title || '').trim().toLowerCase();
             const bodyText = (document.body?.innerText || '')
@@ -97,33 +135,17 @@ function setupScreenshotAuthLayout(win) {
               bodyText.includes('register')
             );
 
-            const topLimit = Math.min(140, window.innerHeight * 0.35);
-            const rightLimit = window.innerWidth - Math.min(170, window.innerWidth * 0.55);
-            const excludedLabels = ['aanmelden', 'inloggen', 'login', 'log in', 'sign in', 'sign up', 'register'];
-
-            const topRightActions = [...document.querySelectorAll('button,[role="button"]')]
-              .filter((element) => {
-                if (element.id === BUTTON_ID || !elementVisible(element)) return false;
-                const text = elementText(element);
-                if (excludedLabels.some((label) => text.includes(label))) return false;
-                const rect = element.getBoundingClientRect();
-                return rect.top >= 0 &&
-                  rect.top < topLimit &&
-                  rect.right > rightLimit &&
-                  rect.width >= 16 && rect.width <= 72 &&
-                  rect.height >= 16 && rect.height <= 72;
-              })
-              .map((element) => ({ element, rect: element.getBoundingClientRect() }))
-              .sort((a, b) => (a.rect.left - b.rect.left) || (a.rect.top - b.rect.top));
-
-            const actionAnchor = topRightActions[0] || null;
-            const loggedInActions = !authenticationPage && !loggedOutHome && Boolean(actionAnchor);
+            const shareAction = !authenticationPage && !loggedOutHome ? findShareAction() : null;
+            const actionClusterLeft = findActionClusterLeft(shareAction);
+            const loggedInActions = Number.isFinite(actionClusterLeft);
 
             if (loggedInActions) {
               const screenshotButton = document.getElementById(BUTTON_ID);
               const buttonWidth = Math.ceil(screenshotButton?.getBoundingClientRect().width || 118);
-              const left = Math.max(8, Math.round(actionAnchor.rect.left - buttonWidth - 8));
-              root.style.setProperty('--vibez-screenshot-action-left', left + 'px');
+              const left = Math.max(8, Math.round(actionClusterLeft - buttonWidth - 8));
+              const previous = root.style.getPropertyValue('--vibez-screenshot-action-left');
+              const next = left + 'px';
+              if (previous !== next) root.style.setProperty('--vibez-screenshot-action-left', next);
             } else {
               root.style.removeProperty('--vibez-screenshot-action-left');
             }
@@ -149,7 +171,7 @@ function setupScreenshotAuthLayout(win) {
             const observer = new MutationObserver(schedule);
             observer.observe(document.documentElement, { childList: true, subtree: true });
             window.addEventListener('resize', schedule, { passive: true });
-            setInterval(updateState, 500);
+            setInterval(updateState, 1000);
           }
 
           updateState();
