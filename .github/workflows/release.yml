@@ -35,6 +35,21 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare release notes from changelog
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { capture=1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            printf 'See CHANGELOG.md for details.\n' > release-notes.md
+          fi
+
       - name: Check whether release already exists
         id: release
         shell: bash
@@ -44,7 +59,7 @@ jobs:
         run: |
           if gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release v${VERSION} already exists; nothing to publish."
+            echo "Release v${VERSION} already exists; skipping package rebuild."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
@@ -65,8 +80,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --linux AppImage deb rpm --publish always
 
+      - name: Update GitHub Release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md
+
       - name: Verify published release
-        if: steps.release.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
