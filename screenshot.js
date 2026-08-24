@@ -1,5 +1,6 @@
 const {
   BrowserWindow,
+  Menu,
   clipboard,
   desktopCapturer,
   dialog,
@@ -15,6 +16,13 @@ let captured = null;
 let ipcRegistered = false;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function getOrderedDisplays() {
+  return screen.getAllDisplays().slice().sort((a, b) => {
+    if (a.bounds.x !== b.bounds.x) return a.bounds.x - b.bounds.x;
+    return a.bounds.y - b.bounds.y;
+  });
+}
 
 function positionButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !buttonWindow || buttonWindow.isDestroyed()) return;
@@ -93,11 +101,40 @@ function closeOverlay(restore = true) {
   if (restore) restoreMain();
 }
 
-async function startScreenshot() {
+function chooseScreenshotDisplay() {
+  if (!mainWindow || mainWindow.isDestroyed() || overlayWindow) return;
+
+  const displays = getOrderedDisplays();
+  if (displays.length <= 1) {
+    startScreenshot(displays[0]);
+    return;
+  }
+
+  const primaryId = String(screen.getPrimaryDisplay().id);
+  const vibeDisplayId = String(screen.getDisplayMatching(mainWindow.getBounds()).id);
+
+  const template = displays.map((display, index) => {
+    const notes = [];
+    if (String(display.id) === primaryId) notes.push('primair');
+    if (String(display.id) === vibeDisplayId) notes.push('VibeZ');
+    const suffix = notes.length ? ` (${notes.join(', ')})` : '';
+
+    return {
+      label: `Scherm ${index + 1} — ${display.bounds.width}×${display.bounds.height}${suffix}`,
+      click: () => startScreenshot(display),
+    };
+  });
+
+  const menu = Menu.buildFromTemplate(template);
+  const owner = buttonWindow && !buttonWindow.isDestroyed() ? buttonWindow : mainWindow;
+  menu.popup({ window: owner });
+}
+
+async function startScreenshot(selectedDisplay) {
   if (!mainWindow || mainWindow.isDestroyed() || overlayWindow) return;
 
   try {
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const display = selectedDisplay || screen.getDisplayMatching(mainWindow.getBounds());
     const factor = display.scaleFactor || 1;
     const size = {
       width: Math.round(display.bounds.width * factor),
@@ -115,7 +152,19 @@ async function startScreenshot() {
       thumbnailSize: size,
       fetchWindowIcons: false,
     });
-    const source = sources.find((s) => String(s.display_id) === String(display.id)) || sources[0];
+
+    let source = sources.find((s) => String(s.display_id) === String(display.id));
+
+    // Some Linux capture backends do not expose display_id. In that case map the
+    // chosen monitor to the corresponding screen source instead of always using
+    // sources[0], which could silently capture the other monitor.
+    if (!source) {
+      const displays = getOrderedDisplays();
+      const displayIndex = displays.findIndex((d) => String(d.id) === String(display.id));
+      if (displayIndex >= 0) source = sources[displayIndex];
+    }
+
+    if (!source) source = sources[0];
     if (!source || source.thumbnail.isEmpty()) throw new Error('Geen schermbron beschikbaar.');
 
     captured = { display, image: source.thumbnail };
@@ -217,7 +266,7 @@ function registerIpc() {
   ipcMain.on('vibez:screenshot:start', (event) => {
     const fromMain = mainWindow && event.sender.id === mainWindow.webContents.id;
     const fromButton = buttonWindow && event.sender.id === buttonWindow.webContents.id;
-    if (fromMain || fromButton) startScreenshot();
+    if (fromMain || fromButton) chooseScreenshotDisplay();
   });
 
   ipcMain.on('vibez:screenshot:finish', async (event, rect) => {
@@ -251,7 +300,7 @@ function setupScreenshot(win) {
   win.webContents.on('before-input-event', (event, input) => {
     if (input.control && input.shift && String(input.key || '').toLowerCase() === 's') {
       event.preventDefault();
-      startScreenshot();
+      chooseScreenshotDisplay();
     }
   });
 }
