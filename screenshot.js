@@ -32,10 +32,10 @@ function positionButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !buttonWindow || buttonWindow.isDestroyed()) return;
   const b = mainWindow.getBounds();
   buttonWindow.setBounds({
-    x: Math.round(b.x + b.width - 70),
-    y: Math.round(b.y + b.height - 140),
-    width: 52,
-    height: 52,
+    x: Math.round(b.x + b.width - 164),
+    y: Math.round(b.y + 74),
+    width: 148,
+    height: 50,
   });
 }
 
@@ -55,8 +55,8 @@ async function ensureButtonWindow() {
 
   buttonWindow = new BrowserWindow({
     parent: mainWindow,
-    width: 52,
-    height: 52,
+    width: 148,
+    height: 50,
     frame: false,
     transparent: true,
     resizable: false,
