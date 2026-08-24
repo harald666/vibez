@@ -27,7 +27,8 @@
     "publish": {
       "provider": "github",
       "owner": "harald666",
-      "repo": "vibez"
+      "repo": "vibez",
+      "releaseType": "release"
     },
     "directories": {
       "output": "dist"
