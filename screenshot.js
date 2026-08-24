@@ -34,6 +34,7 @@ async function installScreenshotButton() {
     await mainWindow.webContents.executeJavaScript(`
       (() => {
         const BUTTON_ID = 'vibez-screenshot-button';
+        const GAP = 8;
 
         const visible = (element) => {
           if (!element || !element.isConnected) return false;
@@ -56,11 +57,14 @@ async function installScreenshotButton() {
             if (found) return found.closest('button,[role="button"]') || found;
           }
 
-          const textNodes = [...document.querySelectorAll('button,[role="button"],span,div')]
+          const textNodes = [...document.querySelectorAll('button,[role="button"],span,div,svg')]
             .filter((element) => element.id !== BUTTON_ID && visible(element));
 
           for (const element of textNodes) {
-            const text = (element.innerText || element.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+            const text = (element.getAttribute('aria-label') || element.getAttribute('title') || element.innerText || element.textContent || '')
+              .replace(/\\s+/g, ' ')
+              .trim()
+              .toLowerCase();
             if (!text || (!text.includes('incognito') && !text.includes('private'))) continue;
             const clickable = element.closest('button,[role="button"]');
             if (clickable && clickable.id !== BUTTON_ID && visible(clickable)) return clickable;
@@ -87,35 +91,37 @@ async function installScreenshotButton() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '7px',
-            minWidth: '112px',
+            minWidth: '118px',
             height: '36px',
             padding: '0 12px',
             margin: '0',
-            borderRadius: '9px',
-            border: '1px solid rgba(255,255,255,.10)',
-            background: 'rgba(30,30,30,.92)',
-            color: 'rgba(255,255,255,.92)',
-            fontFamily: 'inherit',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,.12)',
+            background: 'linear-gradient(135deg, rgba(122,37,53,.98) 0%, rgba(168,49,58,.98) 55%, rgba(245,96,55,.98) 100%)',
+            color: '#fff7f4',
+            fontFamily: 'Inter, system-ui, sans-serif',
             fontSize: '13px',
-            fontWeight: '500',
+            fontWeight: '600',
             lineHeight: '1',
-            letterSpacing: '0',
-            boxShadow: '0 2px 8px rgba(0,0,0,.18)',
+            letterSpacing: '.01em',
+            boxShadow: '0 10px 26px rgba(128, 28, 34, .28), 0 3px 10px rgba(0,0,0,.12)',
             cursor: 'pointer',
             pointerEvents: 'auto',
             whiteSpace: 'nowrap',
-            transition: 'filter .12s ease, transform .12s ease, background-color .12s ease'
+            transition: 'transform .12s ease, filter .12s ease, box-shadow .12s ease'
           });
 
           button.addEventListener('mouseenter', () => {
-            button.style.filter = 'brightness(1.12)';
+            button.style.filter = 'brightness(1.06) saturate(1.05)';
+            button.style.boxShadow = '0 12px 30px rgba(128, 28, 34, .32), 0 5px 14px rgba(0,0,0,.16)';
           });
           button.addEventListener('mouseleave', () => {
             button.style.filter = '';
             button.style.transform = '';
+            button.style.boxShadow = '0 10px 26px rgba(128, 28, 34, .28), 0 3px 10px rgba(0,0,0,.12)';
           });
           button.addEventListener('mousedown', () => {
-            button.style.transform = 'scale(.98)';
+            button.style.transform = 'scale(.985)';
           });
           button.addEventListener('mouseup', () => {
             button.style.transform = '';
@@ -130,53 +136,32 @@ async function installScreenshotButton() {
           return button;
         };
 
-        const matchStyleAndPosition = () => {
+        const placeButton = () => {
           const button = createButton();
           const incognito = findIncognito();
+          const width = Math.ceil(button.getBoundingClientRect().width || 118);
+          const height = Math.ceil(button.getBoundingClientRect().height || 36);
 
           if (incognito) {
             const rect = incognito.getBoundingClientRect();
-            const style = getComputedStyle(incognito);
-            const height = Math.max(32, Math.min(44, Math.round(rect.height || 36)));
-            const width = Math.max(112, Math.min(142, Math.round(rect.width || 112)));
-
-            button.style.height = height + 'px';
-            button.style.minWidth = width + 'px';
-            button.style.fontFamily = style.fontFamily || 'inherit';
-            button.style.fontSize = style.fontSize || '13px';
-            button.style.fontWeight = style.fontWeight || '500';
-            button.style.color = style.color || 'rgba(255,255,255,.92)';
-            button.style.background = style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)'
-              ? style.backgroundColor
-              : 'rgba(30,30,30,.92)';
-            button.style.borderRadius = style.borderRadius || '9px';
-            button.style.borderTop = style.borderTop || '1px solid rgba(255,255,255,.10)';
-            button.style.borderRight = style.borderRight || '1px solid rgba(255,255,255,.10)';
-            button.style.borderBottom = style.borderBottom || '1px solid rgba(255,255,255,.10)';
-            button.style.borderLeft = style.borderLeft || '1px solid rgba(255,255,255,.10)';
-            button.style.boxShadow = style.boxShadow !== 'none' ? style.boxShadow : '0 2px 8px rgba(0,0,0,.18)';
-
-            let left = Math.round(rect.right + 8);
-            if (left + width > window.innerWidth - 8) left = Math.round(rect.left - width - 8);
+            let left = Math.round(rect.left - width - GAP);
+            if (left < 8) left = Math.round(rect.right + GAP);
+            const top = Math.round(rect.top + ((rect.height || height) - height) / 2);
 
             button.style.left = Math.max(8, left) + 'px';
             button.style.right = 'auto';
-            button.style.top = Math.max(8, Math.round(rect.top + (rect.height - height) / 2)) + 'px';
+            button.style.top = Math.max(8, top) + 'px';
             button.dataset.vibezAnchored = '1';
           } else {
-            // Fallback: the button always remains available, even while Vibe is rerendering.
             button.style.left = 'auto';
             button.style.right = '18px';
             button.style.top = '68px';
-            button.style.height = '36px';
-            button.style.minWidth = '112px';
             button.dataset.vibezAnchored = '0';
           }
-
           return true;
         };
 
-        window.__vibezEnsureScreenshotButton = matchStyleAndPosition;
+        window.__vibezEnsureScreenshotButton = placeButton;
         window.__vibezSetScreenshotButtonVisible = (show) => {
           const button = document.getElementById(BUTTON_ID);
           if (!button) return;
@@ -192,7 +177,7 @@ async function installScreenshotButton() {
             queued = true;
             requestAnimationFrame(() => {
               queued = false;
-              matchStyleAndPosition();
+              placeButton();
             });
           };
 
@@ -203,7 +188,7 @@ async function installScreenshotButton() {
           setInterval(schedule, 1500);
         }
 
-        matchStyleAndPosition();
+        placeButton();
       })();
     `);
   } catch (error) {
