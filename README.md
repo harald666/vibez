@@ -7,7 +7,7 @@ A simple Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/). Vibe
 ## Features
 
 - Opens the official Mistral Vibe web app in a standalone window.
-- Provides Linux installation packages for Debian-based distributions, Fedora-based distributions, and AppImage.
+- Provides Linux installation packages for Debian-based distributions, Fedora-based distributions, Arch Linux and Arch-based distributions, plus AppImage.
 - Checks for new GitHub releases automatically in installed versions.
 
 ## Install on Linux
@@ -21,7 +21,7 @@ Open the `.deb` file with your software installer. After installation, **VibeZ**
 You can also install it from a terminal:
 
 ```bash
-sudo apt install ./VibeZ_1.0.0_amd64.deb
+sudo apt install ./VibeZ_1.1.0_amd64.deb
 ```
 
 ### Fedora
@@ -29,7 +29,15 @@ sudo apt install ./VibeZ_1.0.0_amd64.deb
 Download the RPM package and install it with:
 
 ```bash
-sudo dnf install ./VibeZ-1.0.0.x86_64.rpm
+sudo dnf install ./VibeZ-1.1.0.x86_64.rpm
+```
+
+### Arch Linux, Manjaro, and EndeavourOS
+
+Download the Pacman package from the release and install it with:
+
+```bash
+sudo pacman -U ./VibeZ-1.1.0.pacman
 ```
 
 ### AppImage
@@ -37,8 +45,8 @@ sudo dnf install ./VibeZ-1.0.0.x86_64.rpm
 If you prefer a portable version, download the AppImage from the same release, make it executable, and run it:
 
 ```bash
-chmod +x VibeZ-1.0.0.AppImage
-./VibeZ-1.0.0.AppImage
+chmod +x VibeZ-1.1.0.AppImage
+./VibeZ-1.1.0.AppImage
 ```
 
 ## Build from source
@@ -68,6 +76,7 @@ The generated files are placed in `dist/`:
 
 - `VibeZ_<version>_amd64.deb` — Debian, Ubuntu, and Linux Mint
 - `VibeZ-<version>.x86_64.rpm` — Fedora and other RPM-based distributions
+- `VibeZ-<version>.pacman` — Arch Linux, Manjaro, EndeavourOS, and other Arch-based distributions
 - `VibeZ-<version>.AppImage` — portable Linux version
 
 ## Updates
