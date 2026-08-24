@@ -104,14 +104,15 @@ function manageScreenshotButtonPosition(win) {
           };
 
           const setLoginSize = (loginRect) => {
-            const width = Math.max(1, Math.round(loginRect.width));
-            const height = Math.max(1, Math.round(loginRect.height));
+            const width = Math.max(1, Math.round(loginRect.width) + 6);
+            const height = Math.max(1, Math.round(loginRect.height) + 2);
             root.style.setProperty('--vibez-screenshot-width', width + 'px');
             root.style.setProperty('--vibez-screenshot-min-width', width + 'px');
             root.style.setProperty('--vibez-screenshot-height', height + 'px');
             root.style.setProperty('--vibez-screenshot-padding', '0 6px');
             root.style.setProperty('--vibez-screenshot-gap', '5px');
             root.style.setProperty('--vibez-screenshot-font-size', '11px');
+            return { width, height };
           };
 
           const updatePosition = () => {
@@ -128,12 +129,9 @@ function manageScreenshotButtonPosition(win) {
 
             if (loginButton) {
               const loginRect = loginButton.getBoundingClientRect();
-              setLoginSize(loginRect);
-
-              const width = Math.round(loginRect.width);
-              const height = Math.round(loginRect.height);
-              const left = Math.max(8, Math.round(loginRect.left - width - GAP));
-              const top = Math.max(8, Math.round(loginRect.top + (loginRect.height - height) / 2));
+              const size = setLoginSize(loginRect);
+              const left = Math.max(8, Math.round(loginRect.left - size.width - GAP));
+              const top = Math.max(8, Math.round(loginRect.top + (loginRect.height - size.height) / 2));
 
               setPosition(left + 'px', 'auto', top + 'px');
               if (button) button.dataset.vibezPositionMode = 'login';
