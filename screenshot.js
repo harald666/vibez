@@ -33,86 +33,190 @@ async function installScreenshotButton() {
   try {
     await mainWindow.webContents.executeJavaScript(`
       (() => {
-        if (window.__vibezScreenshotUiInstalled) {
-          window.__vibezEnsureScreenshotButton?.();
-          return;
-        }
+        const BUTTON_ID = 'vibez-screenshot-button';
 
-        window.__vibezScreenshotUiInstalled = true;
-
-        const findIncognito = () => {
-          const candidates = [...document.querySelectorAll('button,[role="button"]')];
-          return candidates.find((element) => {
-            const text = (element.innerText || element.textContent || '').trim().toLowerCase();
-            const label = (element.getAttribute('aria-label') || '').trim().toLowerCase();
-            const title = (element.getAttribute('title') || '').trim().toLowerCase();
-            return text.includes('incognito') || label.includes('incognito') || title.includes('incognito');
-          });
+        const visible = (element) => {
+          if (!element || !element.isConnected) return false;
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
         };
 
-        const makeButton = (incognito) => {
-          const button = incognito.cloneNode(true);
-          button.id = 'vibez-screenshot-button';
-          button.removeAttribute('aria-pressed');
-          button.removeAttribute('data-state');
-          button.removeAttribute('title');
-          button.setAttribute('type', 'button');
+        const findIncognito = () => {
+          const directSelectors = [
+            'button[aria-label*="incognito" i]',
+            '[role="button"][aria-label*="incognito" i]',
+            'button[title*="incognito" i]',
+            '[role="button"][title*="incognito" i]',
+            '[data-testid*="incognito" i]'
+          ];
+
+          for (const selector of directSelectors) {
+            const found = [...document.querySelectorAll(selector)].find((element) => element.id !== BUTTON_ID && visible(element));
+            if (found) return found.closest('button,[role="button"]') || found;
+          }
+
+          const textNodes = [...document.querySelectorAll('button,[role="button"],span,div')]
+            .filter((element) => element.id !== BUTTON_ID && visible(element));
+
+          for (const element of textNodes) {
+            const text = (element.innerText || element.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+            if (!text || (!text.includes('incognito') && !text.includes('private'))) continue;
+            const clickable = element.closest('button,[role="button"]');
+            if (clickable && clickable.id !== BUTTON_ID && visible(clickable)) return clickable;
+          }
+
+          return null;
+        };
+
+        const createButton = () => {
+          let button = document.getElementById(BUTTON_ID);
+          if (button) return button;
+
+          button = document.createElement('button');
+          button.id = BUTTON_ID;
+          button.type = 'button';
           button.setAttribute('aria-label', 'Screenshot');
           button.setAttribute('title', 'Screenshot (Ctrl+Shift+S)');
+          button.innerHTML = '<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 7.5 9 5.5h6l1.5 2H19a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2h2.5Z"></path><circle cx="12" cy="13" r="3.25"></circle></svg></span><span>Screenshot</span>';
 
-          while (button.firstChild) button.removeChild(button.firstChild);
+          Object.assign(button.style, {
+            position: 'fixed',
+            zIndex: '2147483646',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '7px',
+            minWidth: '112px',
+            height: '36px',
+            padding: '0 12px',
+            margin: '0',
+            borderRadius: '9px',
+            border: '1px solid rgba(255,255,255,.10)',
+            background: 'rgba(30,30,30,.92)',
+            color: 'rgba(255,255,255,.92)',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: '500',
+            lineHeight: '1',
+            letterSpacing: '0',
+            boxShadow: '0 2px 8px rgba(0,0,0,.18)',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            whiteSpace: 'nowrap',
+            transition: 'filter .12s ease, transform .12s ease, background-color .12s ease'
+          });
 
-          const iconWrap = document.createElement('span');
-          iconWrap.setAttribute('aria-hidden', 'true');
-          iconWrap.style.display = 'inline-flex';
-          iconWrap.style.alignItems = 'center';
-          iconWrap.style.justifyContent = 'center';
-          iconWrap.style.flexShrink = '0';
-          iconWrap.style.color = 'currentColor';
-          iconWrap.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 7.5 9 5.5h6l1.5 2H19a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2h2.5Z"></path><circle cx="12" cy="13" r="3.25"></circle></svg>';
-
-          const label = document.createElement('span');
-          label.textContent = 'Screenshot';
-
-          button.append(iconWrap, label);
+          button.addEventListener('mouseenter', () => {
+            button.style.filter = 'brightness(1.12)';
+          });
+          button.addEventListener('mouseleave', () => {
+            button.style.filter = '';
+            button.style.transform = '';
+          });
+          button.addEventListener('mousedown', () => {
+            button.style.transform = 'scale(.98)';
+          });
+          button.addEventListener('mouseup', () => {
+            button.style.transform = '';
+          });
           button.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
             window.vibez?.captureScreenshot();
-          });
+          }, true);
 
+          document.body.appendChild(button);
           return button;
         };
 
-        const ensureButton = () => {
-          const existing = document.getElementById('vibez-screenshot-button');
-          if (existing && existing.isConnected) return true;
-
+        const matchStyleAndPosition = () => {
+          const button = createButton();
           const incognito = findIncognito();
-          if (!incognito || !incognito.parentElement) return false;
 
-          const button = makeButton(incognito);
-          incognito.insertAdjacentElement('afterend', button);
+          if (incognito) {
+            const rect = incognito.getBoundingClientRect();
+            const style = getComputedStyle(incognito);
+            const height = Math.max(32, Math.min(44, Math.round(rect.height || 36)));
+            const width = Math.max(112, Math.min(142, Math.round(rect.width || 112)));
+
+            button.style.height = height + 'px';
+            button.style.minWidth = width + 'px';
+            button.style.fontFamily = style.fontFamily || 'inherit';
+            button.style.fontSize = style.fontSize || '13px';
+            button.style.fontWeight = style.fontWeight || '500';
+            button.style.color = style.color || 'rgba(255,255,255,.92)';
+            button.style.background = style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)'
+              ? style.backgroundColor
+              : 'rgba(30,30,30,.92)';
+            button.style.borderRadius = style.borderRadius || '9px';
+            button.style.borderTop = style.borderTop || '1px solid rgba(255,255,255,.10)';
+            button.style.borderRight = style.borderRight || '1px solid rgba(255,255,255,.10)';
+            button.style.borderBottom = style.borderBottom || '1px solid rgba(255,255,255,.10)';
+            button.style.borderLeft = style.borderLeft || '1px solid rgba(255,255,255,.10)';
+            button.style.boxShadow = style.boxShadow !== 'none' ? style.boxShadow : '0 2px 8px rgba(0,0,0,.18)';
+
+            let left = Math.round(rect.right + 8);
+            if (left + width > window.innerWidth - 8) left = Math.round(rect.left - width - 8);
+
+            button.style.left = Math.max(8, left) + 'px';
+            button.style.right = 'auto';
+            button.style.top = Math.max(8, Math.round(rect.top + (rect.height - height) / 2)) + 'px';
+            button.dataset.vibezAnchored = '1';
+          } else {
+            // Fallback: the button always remains available, even while Vibe is rerendering.
+            button.style.left = 'auto';
+            button.style.right = '18px';
+            button.style.top = '68px';
+            button.style.height = '36px';
+            button.style.minWidth = '112px';
+            button.dataset.vibezAnchored = '0';
+          }
+
           return true;
         };
 
-        window.__vibezEnsureScreenshotButton = ensureButton;
-        ensureButton();
+        window.__vibezEnsureScreenshotButton = matchStyleAndPosition;
+        window.__vibezSetScreenshotButtonVisible = (show) => {
+          const button = document.getElementById(BUTTON_ID);
+          if (!button) return;
+          button.style.visibility = show ? 'visible' : 'hidden';
+        };
 
-        let queued = false;
-        const observer = new MutationObserver(() => {
-          if (queued) return;
-          queued = true;
-          requestAnimationFrame(() => {
-            queued = false;
-            ensureButton();
-          });
-        });
-        observer.observe(document.documentElement, { childList: true, subtree: true });
+        if (!window.__vibezScreenshotUiInstalled) {
+          window.__vibezScreenshotUiInstalled = true;
+
+          let queued = false;
+          const schedule = () => {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(() => {
+              queued = false;
+              matchStyleAndPosition();
+            });
+          };
+
+          const observer = new MutationObserver(schedule);
+          observer.observe(document.documentElement, { childList: true, subtree: true });
+          window.addEventListener('resize', schedule, { passive: true });
+          window.addEventListener('scroll', schedule, { passive: true, capture: true });
+          setInterval(schedule, 1500);
+        }
+
+        matchStyleAndPosition();
       })();
     `);
   } catch (error) {
     console.error('Kon Screenshot-knop niet in Vibe plaatsen:', error);
+  }
+}
+
+async function setScreenshotButtonVisible(show) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    await mainWindow.webContents.executeJavaScript(`window.__vibezSetScreenshotButtonVisible?.(${show ? 'true' : 'false'});`);
+  } catch (_) {
+    // The page can be navigating while visibility is restored; the installer will recreate it.
   }
 }
 
@@ -122,6 +226,7 @@ function restoreMain() {
   if (!mainWindow.isVisible()) mainWindow.show();
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.focus();
+  setScreenshotButtonVisible(true);
 }
 
 function closeOverlays(restore = true) {
@@ -204,6 +309,7 @@ async function startScreenshot() {
     const displays = getOrderedDisplays();
     if (!displays.length) throw new Error('Geen beeldschermen gevonden.');
 
+    await setScreenshotButtonVisible(false);
     await wait(90);
 
     const frozenDisplays = [];
