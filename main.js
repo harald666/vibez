@@ -5,6 +5,32 @@ const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
 
+function lockScreenshotButtonPosition(win) {
+  win.webContents.on('did-finish-load', async () => {
+    try {
+      await win.webContents.executeJavaScript(`
+        (() => {
+          const STYLE_ID = 'vibez-screenshot-position-lock';
+          if (document.getElementById(STYLE_ID)) return;
+
+          const style = document.createElement('style');
+          style.id = STYLE_ID;
+          style.textContent = `
+            #vibez-screenshot-button {
+              left: auto !important;
+              right: 60px !important;
+              top: 31px !important;
+            }
+          `;
+          (document.head || document.documentElement).appendChild(style);
+        })();
+      `);
+    } catch (error) {
+      console.error('Kon Screenshot-positie niet vastzetten:', error);
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -21,6 +47,7 @@ function createWindow() {
 
   mainWindow.loadURL('https://vibe.mistral.ai/');
   setupScreenshot(mainWindow);
+  lockScreenshotButtonPosition(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
