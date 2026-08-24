@@ -15,7 +15,7 @@ function lockScreenshotButtonPosition(win) {
 
           const style = document.createElement('style');
           style.id = STYLE_ID;
-          style.textContent = '#vibez-screenshot-button { left: auto !important; right: 74px !important; top: 12px !important; }';
+          style.textContent = '#vibez-screenshot-button { left: auto !important; right: 74px !important; top: 9px !important; }';
           (document.head || document.documentElement).appendChild(style);
         })();
       `);
