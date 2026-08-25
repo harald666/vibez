@@ -1,9 +1,108 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu, MenuItem, clipboard, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
+
+// Context menu voor rechtermuisknop
+function createContextMenu() {
+  const menu = new Menu();
+
+  // Copy
+  menu.append(new MenuItem({
+    label: 'Copy',
+    click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow) {
+        focusedWindow.webContents.executeJavaScript(`
+          window.getSelection().toString();
+        `).then((result) => {
+          if (result && result !== '') {
+            clipboard.writeText(result);
+          }
+        });
+      }
+    },
+    accelerator: 'CmdOrCtrl+C'
+  }));
+
+  // Paste
+  menu.append(new MenuItem({
+    label: 'Paste',
+    click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow) {
+        const text = clipboard.readText();
+        if (text) {
+          focusedWindow.webContents.executeJavaScript(`
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
+              document.execCommand('insertText', false, '${text.replace(/'/g, "\\'")}');
+            }
+          `);
+        }
+      }
+    },
+    accelerator: 'CmdOrCtrl+V'
+  }));
+
+  // Separator
+  menu.append(new MenuItem({ type: 'separator' }));
+
+  // Select All
+  menu.append(new MenuItem({
+    label: 'Select All',
+    click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow) {
+        focusedWindow.webContents.executeJavaScript(`
+          document.execCommand('selectAll', false, null);
+        `);
+      }
+    },
+    accelerator: 'CmdOrCtrl+A'
+  }));
+
+  // Separator
+  menu.append(new MenuItem({ type: 'separator' }));
+
+  // Search with Google
+  menu.append(new MenuItem({
+    label: 'Search with Google',
+    click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow) {
+        focusedWindow.webContents.executeJavaScript(`
+          window.getSelection().toString();
+        `).then((result) => {
+          if (result && result !== '') {
+            shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(result)}`);
+          }
+        });
+      }
+    }
+  }));
+
+  // Search with DuckDuckGo
+  menu.append(new MenuItem({
+    label: 'Search with DuckDuckGo',
+    click: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow) {
+        focusedWindow.webContents.executeJavaScript(`
+          window.getSelection().toString();
+        `).then((result) => {
+          if (result && result !== '') {
+            shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(result)}`);
+          }
+        });
+      }
+    }
+  }));
+
+  return menu;
+}
 
 function setupScreenshotLayout(win) {
   const install = async () => {
@@ -181,6 +280,12 @@ function createWindow() {
       webgl: false,
       gpu: false,
     },
+  });
+
+  // Voeg context menu toe aan het venster
+  mainWindow.webContents.on('context-menu', (e, params) => {
+    const contextMenu = createContextMenu();
+    contextMenu.popup({ window: mainWindow, x: params.x, y: params.y });
   });
 
   setupScreenshot(mainWindow);
