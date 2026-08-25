@@ -24,6 +24,7 @@ function setupContextMenu() {
   ]);
 
   mainWindow.webContents.on('context-menu', (e, params) => {
+    e.preventDefault();
     if (params.isEditable) {
       contextMenu.popup({ window: mainWindow, x: params.x, y: params.y });
     }
