@@ -1,9 +1,34 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require("electron");
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
+
+
+function setupContextMenu() {
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Plakken',
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.paste();
+        }
+      },
+      accelerator: process.platform === 'darwin' ? 'Cmd+V' : 'Ctrl+V'
+    },
+    { type: 'separator' },
+    { label: 'Kopieeren', role: 'copy' },
+    { label: 'Knippen', role: 'cut' },
+    { label: 'Alles selecteren', role: 'selectAll' }
+  ]);
+
+  mainWindow.webContents.on('context-menu', (e, params) => {
+    if (params.isEditable) {
+      contextMenu.popup({ window: mainWindow, x: params.x, y: params.y });
+    }
+  });
+}
 
 function setupScreenshotLayout(win) {
   const install = async () => {
@@ -186,6 +211,8 @@ function createWindow() {
   setupScreenshot(mainWindow);
   setupScreenshotLayout(mainWindow);
   mainWindow.loadURL('https://vibe.mistral.ai/');
+
+  setupContextMenu();
 
   mainWindow.on('closed', () => {
     mainWindow = null;
