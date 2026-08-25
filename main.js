@@ -1,33 +1,68 @@
-const { app, BrowserWindow, Menu } = require("electron");
+const { app, BrowserWindow, Menu, shell } = require("electron");
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { setupScreenshot } = require('./screenshot');
 
 let mainWindow;
+let browserLanguage = 'en';
+
+const uiTranslations = {
+  nl: { paste: 'Plakken', copy: 'Kopiëren', cut: 'Knippen', selectAll: 'Alles selecteren', google: 'Zoeken met Google', duckDuckGo: 'Zoeken met DuckDuckGo' },
+  de: { paste: 'Einfügen', copy: 'Kopieren', cut: 'Ausschneiden', selectAll: 'Alles auswählen', google: 'Mit Google suchen', duckDuckGo: 'Mit DuckDuckGo suchen' },
+  fr: { paste: 'Coller', copy: 'Copier', cut: 'Couper', selectAll: 'Tout sélectionner', google: 'Rechercher avec Google', duckDuckGo: 'Rechercher avec DuckDuckGo' },
+  es: { paste: 'Pegar', copy: 'Copiar', cut: 'Cortar', selectAll: 'Seleccionar todo', google: 'Buscar con Google', duckDuckGo: 'Buscar con DuckDuckGo' },
+  it: { paste: 'Incolla', copy: 'Copia', cut: 'Taglia', selectAll: 'Seleziona tutto', google: 'Cerca con Google', duckDuckGo: 'Cerca con DuckDuckGo' },
+  pt: { paste: 'Colar', copy: 'Copiar', cut: 'Cortar', selectAll: 'Selecionar tudo', google: 'Pesquisar com o Google', duckDuckGo: 'Pesquisar com o DuckDuckGo' },
+  en: { paste: 'Paste', copy: 'Copy', cut: 'Cut', selectAll: 'Select All', google: 'Search with Google', duckDuckGo: 'Search with DuckDuckGo' }
+};
+
+function uiText(language = browserLanguage) {
+  return uiTranslations[String(language || 'en').toLowerCase().split('-')[0]] || uiTranslations.en;
+}
+
+function windowTitle() {
+  return `VibeZ v${app.getVersion()}`;
+}
+
+function updateBrowserLanguage(win) {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.executeJavaScript('navigator.language || document.documentElement.lang || "en"')
+    .then((language) => { browserLanguage = language || 'en'; })
+    .catch(() => {});
+}
 
 
 function setupContextMenu() {
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Plakken',
-      click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.paste();
-        }
-      },
-      accelerator: process.platform === 'darwin' ? 'Cmd+V' : 'Ctrl+V'
-    },
-    { type: 'separator' },
-    { label: 'Kopieeren', role: 'copy' },
-    { label: 'Knippen', role: 'cut' },
-    { label: 'Alles selecteren', role: 'selectAll' }
-  ]);
-
   mainWindow.webContents.on('context-menu', (e, params) => {
     e.preventDefault();
+    const selection = params.selectionText?.trim();
+    const template = [];
+    const text = uiText();
+
     if (params.isEditable) {
-      contextMenu.popup({ window: mainWindow, x: params.x, y: params.y });
+      template.push(
+        {
+          label: text.paste,
+          click: () => mainWindow?.webContents.paste(),
+          accelerator: process.platform === 'darwin' ? 'Cmd+V' : 'Ctrl+V',
+        },
+        { label: text.copy, role: 'copy', enabled: Boolean(selection) },
+        { label: text.cut, role: 'cut', enabled: Boolean(selection) },
+        { label: text.selectAll, role: 'selectAll' },
+      );
+    } else if (selection) {
+      template.push({ label: text.copy, role: 'copy' });
     }
+
+    if (selection) {
+      if (template.length) template.push({ type: 'separator' });
+      template.push(
+        { label: text.google, click: () => shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(selection)}`) },
+        { label: text.duckDuckGo, click: () => shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(selection)}`) },
+      );
+    }
+
+    if (template.length) Menu.buildFromTemplate(template).popup({ window: mainWindow, x: params.x, y: params.y });
   });
 }
 
@@ -199,6 +234,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: windowTitle(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -211,6 +247,12 @@ function createWindow() {
 
   setupScreenshot(mainWindow);
   setupScreenshotLayout(mainWindow);
+  mainWindow.webContents.on('did-finish-load', () => updateBrowserLanguage(mainWindow));
+  mainWindow.webContents.on('did-navigate-in-page', () => updateBrowserLanguage(mainWindow));
+  mainWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+    mainWindow?.setTitle(windowTitle());
+  });
   mainWindow.loadURL('https://vibe.mistral.ai/');
 
   setupContextMenu();

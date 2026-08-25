@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Schermafdruk selecteren</title>
+  <title>Select screenshot</title>
   <style>
     html, body {
       width: 100%; height: 100%; margin: 0; overflow: hidden; cursor: crosshair;
@@ -28,15 +28,33 @@
   <img id="capture" alt="" />
   <div id="shade"></div>
   <div id="selection"></div>
-  <div id="hint">Sleep over het gebied dat je wilt delen · Esc = annuleren</div>
+  <div id="hint">Drag over the area you want to share · Esc = cancel</div>
 
   <script>
     const capture = document.getElementById('capture');
     const shade = document.getElementById('shade');
     const selection = document.getElementById('selection');
+    const hint = document.getElementById('hint');
     let startPoint = null;
 
+    const translations = {
+      nl: { title: 'Schermafdruk selecteren', hint: 'Sleep over het gebied dat je wilt delen · Esc = annuleren' },
+      de: { title: 'Screenshot auswählen', hint: 'Ziehe über den Bereich, den du teilen möchtest · Esc = Abbrechen' },
+      fr: { title: 'Sélectionner une capture', hint: 'Faites glisser sur la zone à partager · Échap = annuler' },
+      es: { title: 'Seleccionar captura', hint: 'Arrastra sobre el área que quieres compartir · Esc = cancelar' },
+      it: { title: 'Seleziona schermata', hint: 'Trascina sull’area che vuoi condividere · Esc = annulla' },
+      pt: { title: 'Selecionar captura', hint: 'Arraste sobre a área que pretende partilhar · Esc = cancelar' },
+      en: { title: 'Select screenshot', hint: 'Drag over the area you want to share · Esc = cancel' }
+    };
+
     window.__vibezSetScreenshot = (dataUrl) => { capture.src = dataUrl; };
+    window.__vibezSetScreenshotLanguage = (language) => {
+      const locale = String(language || 'en').toLowerCase().split('-')[0];
+      const text = translations[locale] || translations.en;
+      document.documentElement.lang = locale;
+      document.title = text.title;
+      hint.textContent = text.hint;
+    };
 
     function rect(start, end) {
       return {

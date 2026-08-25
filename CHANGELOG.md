@@ -6,10 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [1.1.2] - 2026-08-25
+## [1.2.0] - 2026-08-25
+
+### Added
+- Browser-language interface text for the Screenshot button, screenshot selection, context menu, and Vibe Code guidance.
+- Clear, localized instructions for using a screenshot with a Vibe Code project and test branch.
+- VibeZ version in the application title bar.
 
 ### Changed
-- Bump version to 1.1.2
+- Replaced the Vibe page title in the title bar with the VibeZ application name and version.
+- Localized the right-click menu, including Google and DuckDuckGo search options.
+
+### Fixed
+- Restored reliable direct screenshot pasting in Chat and Work.
 
 ## [1.1.0] - 2026-08-24
 
@@ -31,6 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.1.2...HEAD
-[1.1.2]: https://github.com/harald666/vibez/releases/tag/v1.1.2
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/harald666/vibez/releases/tag/v1.2.0
 [1.1.0]: https://github.com/harald666/vibez/releases/tag/v1.1.0
