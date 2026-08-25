@@ -471,6 +471,7 @@ async function attach(image) {
   if (!mainWindow || mainWindow.isDestroyed() || !image || image.isEmpty()) return;
   restoreMain();
   clipboard.writeImage(image);
+  clipboard.writeText('');
   await wait(120);
   await focusComposer();
   await wait(80);
