@@ -458,6 +458,7 @@ async function focusComposer() {
         const editor = candidates.at(-1);
         if (!editor) return false;
         editor.focus();
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
         return true;
       })();
     `);
