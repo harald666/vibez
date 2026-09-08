@@ -116,13 +116,59 @@ function ensureMainVisible() {
   mainWindow.focus();
 }
 
-function positionScreenshotButton() {
+async function positionScreenshotButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
   const bounds = mainWindow.getBounds();
   const width = 146;
   const height = 48;
-  const x = Math.round(bounds.x + bounds.width - 232);
-  const y = Math.round(bounds.y + 5);
+  const gap = 10;
+  let x = Math.round(bounds.x + bounds.width - 330);
+  let y = Math.round(bounds.y + 5);
+
+  try {
+    const anchor = await mainWindow.webContents.executeJavaScript(`
+      (() => {
+        const visible = (el) => {
+          if (!el || !el.isConnected) return false;
+          const r = el.getBoundingClientRect();
+          const s = getComputedStyle(el);
+          return r.width > 18 && r.height > 18 && r.top >= 0 && r.top < 120 && s.display !== 'none' && s.visibility !== 'hidden';
+        };
+        const textOf = (el) => [el.innerText, el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
+          .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
+        const signupWords = [
+          'aanmelden','registreren','sign up','register','create account','konto erstellen','registrieren',
+          's’inscrire','inscription','registrarse','crear cuenta','registrati','crea account','registar','criar conta',
+          '注册','註冊','创建账户','建立帳戶','إنشاء حساب','تسجيل','साइन अप','登録','가입','регистрация','зарегистрироваться',
+          'kayıt ol','zarejestruj','реєстрація','daftar','đăng ký','สมัคร','הרשמה','ثبت نام','رجسٹر','নিবন্ধন'
+        ];
+        const nodes = [...document.querySelectorAll('button,a,[role="button"]')]
+          .filter(visible)
+          .map((el) => ({ el, text: textOf(el), rect: el.getBoundingClientRect() }))
+          .filter((item) => item.rect.left > window.innerWidth * 0.55);
+        let match = nodes.find((item) => signupWords.some((word) => item.text === word || item.text.includes(word)));
+        if (!match) {
+          match = nodes
+            .filter((item) => item.rect.width >= 55 && item.rect.width <= 240)
+            .sort((a, b) => b.rect.right - a.rect.right)[0];
+        }
+        if (!match) return null;
+        const r = match.rect;
+        return { left: r.left, top: r.top, width: r.width, height: r.height };
+      })()
+    `);
+    if (anchor && Number.isFinite(anchor.left)) {
+      x = Math.round(bounds.x + anchor.left - width - gap);
+      y = Math.round(bounds.y + anchor.top + (anchor.height - height) / 2);
+    }
+  } catch (_) {}
+
+  const minX = bounds.x + 8;
+  const maxX = bounds.x + bounds.width - width - 8;
+  const minY = bounds.y + 2;
+  const maxY = bounds.y + Math.min(90, bounds.height - height - 2);
+  x = Math.max(minX, Math.min(maxX, x));
+  y = Math.max(minY, Math.min(maxY, y));
   screenshotButtonWindow.setBounds({ x, y, width, height }, false);
 }
 
