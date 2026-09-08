@@ -15,6 +15,16 @@ A simple Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/). Vibe
 
 ## Install on Linux
 
+### Quick install
+
+Install the latest VibeZ release with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash
+```
+
+The installer automatically detects Debian/Ubuntu/Linux Mint, Fedora/RPM-based distributions, or Arch Linux/Manjaro/EndeavourOS and downloads the correct package from the latest GitHub release.
+
 Latest release: **VibeZ 1.2.0**
 
 | Distribution | Download |
