@@ -1,100 +1,84 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>VibeZ Settings</title>
   <style>
     :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111216;color:#f5f3f2}
-    *{box-sizing:border-box} body{margin:0;min-height:100vh;background:radial-gradient(circle at 90% 0,rgba(245,96,55,.09),transparent 34%),#111216}
-    main{max-width:760px;margin:0 auto;padding:28px 28px 24px} h1{font-size:24px;margin:0 0 4px}.sub{color:#aaa5a2;margin:0 0 24px;font-size:13px}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 90% 0,rgba(245,96,55,.09),transparent 34%),#111216}
+    main{max-width:760px;margin:0 auto;padding:28px 28px 24px}h1{font-size:24px;margin:0 0 22px}
     section{border:1px solid #2c2d33;background:#18191e;border-radius:14px;margin:0 0 16px;overflow:hidden}section h2{font-size:14px;margin:0;padding:14px 16px;border-bottom:1px solid #292a30;color:#ff9b68}
-    .row{display:grid;grid-template-columns:1fr minmax(180px,260px);gap:18px;align-items:center;padding:13px 16px;border-bottom:1px solid #24252b}.row:last-child{border-bottom:0}.label{font-size:13px;font-weight:600}.help{font-size:11px;color:#96918f;margin-top:3px;line-height:1.35}
+    .row{display:grid;grid-template-columns:1fr minmax(180px,260px);gap:18px;align-items:center;padding:13px 16px;border-bottom:1px solid #24252b}.row:last-child{border-bottom:0}.label{font-size:13px;font-weight:600;line-height:1.35}
     input[type=checkbox]{width:18px;height:18px;accent-color:#ef6b45;justify-self:end}select{width:100%;background:#101116;color:#f3efed;border:1px solid #34353d;border-radius:8px;padding:8px 10px;font:inherit;font-size:12px}
-    .actions{position:sticky;bottom:0;display:flex;align-items:center;gap:9px;padding:12px 0 4px;background:linear-gradient(transparent,#111216 30%)}button{border:1px solid #363740;border-radius:9px;background:#202127;color:#f4f0ee;padding:9px 13px;font:600 12px/1 system-ui;cursor:pointer}button.primary{background:linear-gradient(135deg,#8c2938,#ef6037);border-color:#b1433c}button:hover{filter:brightness(1.08)}.status{margin-left:auto;color:#aaa5a2;font-size:11px;max-width:270px;text-align:right}.warn{color:#ffb37f}.danger{color:#ff8c8c}.link{background:transparent;border-color:#2c2d33}
+    .actions{position:sticky;bottom:0;display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 0 4px;background:linear-gradient(transparent,#111216 30%)}button{border:1px solid #363740;border-radius:9px;background:#202127;color:#f4f0ee;padding:9px 13px;font:600 12px/1 system-ui;cursor:pointer}button.primary{background:linear-gradient(135deg,#8c2938,#ef6037);border-color:#b1433c}button:hover{filter:brightness(1.08)}.status{margin-inline-start:auto;color:#aaa5a2;font-size:11px;max-width:310px;text-align:end}.warn{color:#ffb37f}.danger{color:#ff8c8c}.link{background:transparent;border-color:#2c2d33}
+    html[dir="rtl"] body{direction:rtl}html[dir="rtl"] input[type=checkbox]{justify-self:start}html[dir="rtl"] .row{grid-template-columns:minmax(180px,260px) 1fr}html[dir="rtl"] .row>div{grid-column:2}html[dir="rtl"] .row>select,html[dir="rtl"] .row>input,html[dir="rtl"] .row>button{grid-column:1;grid-row:1}html[dir="rtl"] select{text-align:right}
+    @media(max-width:620px){main{padding:18px}.row,.row[dir]{grid-template-columns:1fr!important}.row>div,.row>select,.row>input,.row>button{grid-column:1!important;grid-row:auto!important}input[type=checkbox]{justify-self:start}}
   </style>
 </head>
 <body>
 <main>
-  <h1>VibeZ Settings</h1>
-  <p class="sub">Desktop integration, screenshots, display and update preferences.</p>
+  <h1 data-i18n="settingsTitle">VibeZ Settings</h1>
 
   <section>
-    <h2>Desktop integration</h2>
-    <div class="row"><div><div class="label">Global screenshot shortcut</div><div class="help">Use the screenshot tool while another application is active.</div></div><input id="globalScreenshot" type="checkbox"></div>
-    <div class="row"><div><div class="label">Screenshot shortcut</div><div class="help">The shortcut must be available system-wide.</div></div><select id="screenshotShortcut"><option value="CommandOrControl+Shift+S">Ctrl+Shift+S</option><option value="CommandOrControl+Alt+S">Ctrl+Alt+S</option><option value="Alt+Shift+S">Alt+Shift+S</option><option value="Super+Shift+S">Super+Shift+S</option></select></div>
-    <div class="row"><div><div class="label">Show Screenshot button</div><div class="help">Native VibeZ button kept outside the Mistral web page.</div></div><input id="showScreenshotButton" type="checkbox"></div>
-    <div class="row"><div><div class="label">Start at login</div><div class="help">Start VibeZ in the system tray when you sign in to Linux.</div></div><input id="startAtLogin" type="checkbox"></div>
-    <div class="row"><div><div class="label">Minimize to tray</div></div><input id="minimizeToTray" type="checkbox"></div>
-    <div class="row"><div><div class="label">Close to tray</div><div class="help">Closing the window keeps VibeZ available in the tray.</div></div><input id="closeToTray" type="checkbox"></div>
+    <h2 data-i18n="desktopIntegration">Desktop integration</h2>
+    <div class="row"><div><div class="label" data-i18n="globalShot">Global screenshot shortcut</div></div><input id="globalScreenshot" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="shotShortcut">Screenshot shortcut</div></div><select id="screenshotShortcut"><option value="CommandOrControl+Shift+S">Ctrl+Shift+S</option><option value="CommandOrControl+Alt+S">Ctrl+Alt+S</option><option value="Alt+Shift+S">Alt+Shift+S</option><option value="Super+Shift+S">Super+Shift+S</option></select></div>
+    <div class="row"><div><div class="label" data-i18n="showShot">Show Screenshot button</div></div><input id="showScreenshotButton" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="startLogin">Start at login</div></div><input id="startAtLogin" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="minTray">Minimize to tray</div></div><input id="minimizeToTray" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="closeTray">Close to tray</div></div><input id="closeToTray" type="checkbox"></div>
   </section>
 
   <section>
-    <h2>Display</h2>
-    <div class="row"><div><div class="label">Hardware acceleration</div><div class="help">Automatic is recommended. Changing this requires a restart.</div></div><select id="hardwareAcceleration"><option value="automatic">Automatic</option><option value="enabled">Enabled (force)</option><option value="disabled">Disabled</option></select></div>
-    <div class="row"><div><div class="label">Display backend</div><div class="help">Automatic chooses the current Linux session. Changing this requires a restart.</div></div><select id="displayBackend"><option value="automatic">Automatic</option><option value="wayland">Wayland</option><option value="x11">X11</option></select></div>
-    <div class="row"><div><div class="label">Zoom</div></div><select id="zoomFactor"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.1">110%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></div>
-    <div class="row"><div><div class="label">VibeZ language</div><div class="help">Used for VibeZ menus. A non-system language takes full effect after restart.</div></div><select id="language"><option value="system">System</option><option value="en">English</option><option value="nl">Nederlands</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="pt">Português</option></select></div>
+    <h2 data-i18n="display">Display</h2>
+    <div class="row"><div><div class="label" data-i18n="hardware">Hardware acceleration</div></div><select id="hardwareAcceleration"><option value="automatic" data-i18n="automatic">Automatic</option><option value="enabled" data-i18n="enabled">Enabled</option><option value="disabled" data-i18n="disabled">Disabled</option></select></div>
+    <div class="row"><div><div class="label" data-i18n="backend">Display backend</div></div><select id="displayBackend"><option value="automatic" data-i18n="automatic">Automatic</option><option value="wayland">Wayland</option><option value="x11">X11</option></select></div>
+    <div class="row"><div><div class="label" data-i18n="zoom">Zoom</div></div><select id="zoomFactor"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.1">110%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></div>
+    <div class="row"><div><div class="label" data-i18n="language">VibeZ language</div></div><select id="language"></select></div>
   </section>
 
   <section>
-    <h2>Updates & browser</h2>
-    <div class="row"><div><div class="label">Check for updates automatically</div></div><input id="autoUpdates" type="checkbox"></div>
-    <div class="row"><div><div class="label">Install downloaded updates when VibeZ closes</div></div><input id="installUpdatesOnQuit" type="checkbox"></div>
-    <div class="row"><div><div class="label">Open external links in your default browser</div><div class="help">Mistral links remain available in VibeZ; unrelated sites open outside the app.</div></div><input id="openExternalLinks" type="checkbox"></div>
-    <div class="row"><div><div class="label">Browser data</div><div class="help">Clears VibeZ cookies, cache and local storage. You will have to sign in again.</div></div><button id="resetData" class="danger">Reset browser data</button></div>
+    <h2 data-i18n="updatesBrowser">Updates & browser</h2>
+    <div class="row"><div><div class="label" data-i18n="autoUpdates">Check for updates automatically</div></div><input id="autoUpdates" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="installOnQuit">Install downloaded updates when VibeZ closes</div></div><input id="installUpdatesOnQuit" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="externalLinks">Open external links in your default browser</div></div><input id="openExternalLinks" type="checkbox"></div>
+    <div class="row"><div><div class="label" data-i18n="browserData">Browser data</div></div><button id="resetData" class="danger" data-i18n="resetData">Reset browser data</button></div>
   </section>
 
   <div class="actions">
-    <button id="about" class="link">About VibeZ</button>
-    <button id="updates" class="link">Check for updates</button>
-    <button id="cancel">Close</button>
-    <button id="save" class="primary">Save settings</button>
+    <button id="about" class="link" data-i18n="about">About VibeZ</button>
+    <button id="updates" class="link" data-i18n="updates">Check for updates</button>
+    <button id="cancel" data-i18n="close">Close</button>
+    <button id="save" class="primary" data-i18n="save">Save settings</button>
     <div id="status" class="status"></div>
   </div>
 </main>
 <script>
-  const ids = ['globalScreenshot','screenshotShortcut','showScreenshotButton','startAtLogin','minimizeToTray','closeToTray','hardwareAcceleration','displayBackend','zoomFactor','language','autoUpdates','installUpdatesOnQuit','openExternalLinks'];
-  let original = null;
-  const el = (id) => document.getElementById(id);
+  const ids=['globalScreenshot','screenshotShortcut','showScreenshotButton','startAtLogin','minimizeToTray','closeToTray','hardwareAcceleration','displayBackend','zoomFactor','language','autoUpdates','installUpdatesOnQuit','openExternalLinks'];
+  const el=(id)=>document.getElementById(id);
+  let strings={};let currentUi=null;
 
-  function fill(settings){
-    original = {...settings};
-    for(const id of ids){
-      const node = el(id);const value = settings[id];
-      if(node.type === 'checkbox') node.checked = Boolean(value);else node.value = String(value);
-    }
+  function tr(key){return strings[key]||key}
+  function applyUi(ui){
+    currentUi=ui||{};strings=currentUi.strings||{};
+    document.documentElement.lang=currentUi.language||'en';document.documentElement.dir=currentUi.dir==='rtl'?'rtl':'ltr';
+    document.title=tr('settingsTitle');
+    document.querySelectorAll('[data-i18n]').forEach((node)=>{node.textContent=tr(node.dataset.i18n)});
+    const language=el('language');const selected=language.value;language.innerHTML='';
+    for(const item of currentUi.languageOptions||[]){const option=document.createElement('option');option.value=item.code;option.textContent=item.code==='system'?tr('system'):item.name;language.appendChild(option)}
+    if(selected)language.value=selected;
   }
-  function collect(){
-    const out = {};
-    for(const id of ids){
-      const node = el(id);out[id] = node.type === 'checkbox' ? node.checked : node.value;
-    }
-    out.zoomFactor = Number(out.zoomFactor);
-    return out;
-  }
-  function setStatus(message, cls=''){const node=el('status');node.textContent=message;node.className='status '+cls;}
+  function fill(settings){for(const id of ids){const node=el(id);const value=settings[id];if(node.type==='checkbox')node.checked=Boolean(value);else node.value=String(value)}}
+  function collect(){const out={};for(const id of ids){const node=el(id);out[id]=node.type==='checkbox'?node.checked:node.value}out.zoomFactor=Number(out.zoomFactor);return out}
+  function setStatus(message,cls=''){const node=el('status');node.textContent=message;node.className='status '+cls}
 
-  window.vibezSettings.get().then(fill).catch((error)=>setStatus(error.message,'danger'));
-  el('save').addEventListener('click',async()=>{
-    setStatus('Saving…');
-    try{
-      const result=await window.vibezSettings.save(collect());
-      fill(result.settings);
-      if(result.restartRequired)setStatus('Saved. Restart VibeZ to apply all display/language changes.','warn');
-      else if(result.shortcutRegistered===false)setStatus('Saved, but that global shortcut is already in use.','warn');
-      else setStatus('Saved.');
-    }catch(error){setStatus(error.message,'danger');}
-  });
+  window.vibezSettings.get().then((payload)=>{const settings=payload.settings||payload;applyUi(payload.ui||{});fill(settings)}).catch((error)=>setStatus(error.message,'danger'));
+  el('save').addEventListener('click',async()=>{setStatus(tr('saving'));try{const result=await window.vibezSettings.save(collect());if(result.ui)applyUi(result.ui);fill(result.settings);if(result.restartRequired)setStatus(tr('restartNeeded'),'warn');else if(result.shortcutRegistered===false)setStatus(tr('shortcutBusy'),'warn');else setStatus(tr('saved'))}catch(error){setStatus(error.message,'danger')}});
   el('cancel').addEventListener('click',()=>window.vibezSettings.close());
   el('about').addEventListener('click',()=>window.vibezSettings.showAbout());
-  el('updates').addEventListener('click',async()=>{setStatus('Checking for updates…');await window.vibezSettings.checkForUpdates();setStatus('Update check started.');});
-  el('resetData').addEventListener('click',async()=>{
-    if(!confirm('Clear all VibeZ browser data? You will be signed out of Mistral Vibe.'))return;
-    setStatus('Clearing browser data…');
-    const result=await window.vibezSettings.resetBrowserData();
-    setStatus(result?'Browser data cleared.':'Browser data was not cleared.',result?'':'warn');
-  });
+  el('updates').addEventListener('click',async()=>{setStatus(tr('checking'));await window.vibezSettings.checkForUpdates();setStatus(tr('updateStarted'))});
+  el('resetData').addEventListener('click',async()=>{if(!confirm(tr('clearConfirm')))return;setStatus(tr('clearing'));const result=await window.vibezSettings.resetBrowserData();setStatus(result?tr('cleared'):tr('notCleared'),result?'':'warn')});
 </script>
 </body>
 </html>
