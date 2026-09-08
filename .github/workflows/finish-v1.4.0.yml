@@ -1,0 +1,39 @@
+name: Finish VibeZ 1.4.0 integration
+
+on:
+  push:
+    branches: [v1.4.0-dev]
+    paths:
+      - '.github/workflows/finish-v1.4.0.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: v1.4.0-dev
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply cross-platform integration
+        run: python3 .github/scripts/finish-cross-platform-v1.4.0.py
+      - name: Set version 1.4.0
+        run: npm version 1.4.0 --no-git-tag-version
+      - name: Security audit
+        run: npm audit --audit-level=high
+      - name: Run tests
+        run: npm test
+      - name: Commit integration
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.js settings.html README.md WINDOWS-MACOS.md docs/index.html CHANGELOG.md test/platform.test.js package.json package-lock.json
+          git commit -m 'Complete VibeZ 1.4.0 cross-platform integration'
+          git push origin HEAD:v1.4.0-dev
