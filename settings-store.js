@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { LANGUAGE_OPTIONS } = require('./i18n');
 
 const DEFAULT_SETTINGS = Object.freeze({
   globalScreenshot: true,
@@ -26,7 +27,7 @@ const VALID_SHORTCUTS = new Set([
 
 const VALID_HARDWARE = new Set(['automatic', 'enabled', 'disabled']);
 const VALID_BACKENDS = new Set(['automatic', 'wayland', 'x11']);
-const VALID_LANGUAGES = new Set(['system', 'en', 'nl', 'de', 'fr', 'es', 'it', 'pt']);
+const VALID_LANGUAGES = new Set(LANGUAGE_OPTIONS.map((item) => item.code));
 const VALID_ZOOM = new Set([0.8, 0.9, 1, 1.1, 1.25, 1.5]);
 
 function normalizeSettings(input = {}) {
