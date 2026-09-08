@@ -2,7 +2,7 @@
   "name": "VibeZ",
   "version": "1.3.2",
   "desktopName": "com.vibez.app",
-  "description": "A graphical Linux desktop client for Mistral Vibe",
+  "description": "A cross-platform desktop client for Mistral Vibe",
   "license": "MIT",
   "homepage": "https://github.com/harald666/vibez",
   "author": {
@@ -53,9 +53,39 @@
         "pacman"
       ],
       "category": "Development",
-      "synopsis": "Linux desktop client for Mistral Vibe",
-      "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates.",
+      "synopsis": "Desktop client for Mistral Vibe",
+      "description": "VibeZ is an independent desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates.",
       "syncDesktopName": true
+    },
+    "win": {
+      "icon": "build/icons/icon_512x512.png",
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "VibeZ-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "VibeZ",
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "icon": "build/icons/icon_512x512.png",
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "VibeZ-${version}-macOS-${arch}.${ext}",
+      "hardenedRuntime": true
+    },
+    "dmg": {
+      "title": "VibeZ ${version}"
     },
     "pacman": {
       "depends": [
