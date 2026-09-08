@@ -94,7 +94,7 @@ main.write_text(s)
 test_path = Path('test/screenshot-position.test.js')
 t = test_path.read_text()
 t = t.replace("  assert.match(source, /sign up/);\n", "  assert.match(source, /sign up/);\n  assert.match(source, /inloggen/);\n  assert.match(source, /sign in/);\n")
-extra = """
+extra = r"""
 
 test('native Screenshot button stays above VibeZ web content without covering other apps', () => {
   assert.match(source, /alwaysOnTop: true/);
@@ -136,7 +136,3 @@ changelog.write_text(c)
 readme = Path('README.md')
 r = readme.read_text().replace('1.3.1', '1.3.2')
 readme.write_text(r)
-
-ci = Path('.github/workflows/ci.yml')
-cs = ci.read_text().replace('branches: [main, v1.3.1-dev]', 'branches: [main, v1.3.2-dev]')
-ci.write_text(cs)
