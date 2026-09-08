@@ -1,108 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Select screenshot</title>
+  <title>Screenshot</title>
   <style>
     html, body {
-      width: 100%; height: 100%; margin: 0; overflow: hidden; cursor: crosshair;
-      user-select: none; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #111;
+      width:100%;height:100%;margin:0;overflow:hidden;cursor:crosshair;
+      user-select:none;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111;
     }
-    #capture { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
-    #shade { position: fixed; inset: 0; background: rgba(0,0,0,.24); pointer-events: none; }
-    #selection {
-      position: fixed; display: none; border: 2px solid #fff; box-sizing: border-box;
-      box-shadow: 0 0 0 99999px rgba(0,0,0,.38); pointer-events: none;
-    }
-    #hint {
-      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-      padding: 9px 14px; border-radius: 10px; background: rgba(20,20,20,.82);
-      color: #fff; font-size: 14px; box-shadow: 0 3px 14px rgba(0,0,0,.28);
-      pointer-events: none; white-space: nowrap;
-    }
+    #capture{position:fixed;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+    #shade{position:fixed;inset:0;background:rgba(0,0,0,.24);pointer-events:none}
+    #selection{position:fixed;display:none;border:2px solid #fff;box-sizing:border-box;box-shadow:0 0 0 99999px rgba(0,0,0,.38);pointer-events:none}
+    #hint{position:fixed;top:18px;left:50%;transform:translateX(-50%);padding:9px 14px;border-radius:10px;background:rgba(20,20,20,.82);color:#fff;font-size:14px;box-shadow:0 3px 14px rgba(0,0,0,.28);pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+    html[dir="rtl"] #hint{direction:rtl;text-align:right}
   </style>
 </head>
 <body>
   <img id="capture" alt="" />
   <div id="shade"></div>
   <div id="selection"></div>
-  <div id="hint">Drag over the area you want to share · Esc = cancel</div>
+  <div id="hint"></div>
 
   <script>
-    const capture = document.getElementById('capture');
-    const shade = document.getElementById('shade');
-    const selection = document.getElementById('selection');
-    const hint = document.getElementById('hint');
-    let startPoint = null;
+    const capture=document.getElementById('capture');
+    const shade=document.getElementById('shade');
+    const selection=document.getElementById('selection');
+    const hint=document.getElementById('hint');
+    let startPoint=null;
 
-    const translations = {
-      nl: { title: 'Schermafdruk selecteren', hint: 'Sleep over het gebied dat je wilt delen · Esc = annuleren' },
-      de: { title: 'Screenshot auswählen', hint: 'Ziehe über den Bereich, den du teilen möchtest · Esc = Abbrechen' },
-      fr: { title: 'Sélectionner une capture', hint: 'Faites glisser sur la zone à partager · Échap = annuler' },
-      es: { title: 'Seleccionar captura', hint: 'Arrastra sobre el área que quieres compartir · Esc = cancelar' },
-      it: { title: 'Seleziona schermata', hint: 'Trascina sull’area che vuoi condividere · Esc = annulla' },
-      pt: { title: 'Selecionar captura', hint: 'Arraste sobre a área que pretende partilhar · Esc = cancelar' },
-      en: { title: 'Select screenshot', hint: 'Drag over the area you want to share · Esc = cancel' }
+    window.__vibezSetScreenshot=(dataUrl)=>{capture.src=dataUrl;};
+    window.__vibezSetScreenshotText=(payload={})=>{
+      document.documentElement.lang=payload.language||'en';
+      document.documentElement.dir=payload.dir==='rtl'?'rtl':'ltr';
+      document.title=payload.title||'Screenshot';
+      hint.textContent=payload.hint||'';
     };
 
-    window.__vibezSetScreenshot = (dataUrl) => { capture.src = dataUrl; };
-    window.__vibezSetScreenshotLanguage = (language) => {
-      const locale = String(language || 'en').toLowerCase().split('-')[0];
-      const text = translations[locale] || translations.en;
-      document.documentElement.lang = locale;
-      document.title = text.title;
-      hint.textContent = text.hint;
-    };
+    function rect(start,end){return{x:Math.min(start.x,end.x),y:Math.min(start.y,end.y),width:Math.abs(end.x-start.x),height:Math.abs(end.y-start.y)}}
+    function draw(r){selection.style.display='block';selection.style.left=`${r.x}px`;selection.style.top=`${r.y}px`;selection.style.width=`${r.width}px`;selection.style.height=`${r.height}px`;shade.style.display='none'}
 
-    function rect(start, end) {
-      return {
-        x: Math.min(start.x, end.x), y: Math.min(start.y, end.y),
-        width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y),
-      };
-    }
-
-    function draw(r) {
-      selection.style.display = 'block';
-      selection.style.left = `${r.x}px`;
-      selection.style.top = `${r.y}px`;
-      selection.style.width = `${r.width}px`;
-      selection.style.height = `${r.height}px`;
-      shade.style.display = 'none';
-    }
-
-    window.addEventListener('mousedown', (event) => {
-      if (event.button !== 0) return;
-      startPoint = { x: event.clientX, y: event.clientY };
-      draw({ x: event.clientX, y: event.clientY, width: 0, height: 0 });
-    });
-
-    window.addEventListener('mousemove', (event) => {
-      if (!startPoint) return;
-      draw(rect(startPoint, { x: event.clientX, y: event.clientY }));
-    });
-
-    window.addEventListener('mouseup', (event) => {
-      if (event.button !== 0 || !startPoint) return;
-      const selected = rect(startPoint, { x: event.clientX, y: event.clientY });
-      startPoint = null;
-      if (selected.width < 5 || selected.height < 5) {
-        selection.style.display = 'none';
-        shade.style.display = 'block';
-        return;
-      }
-      window.vibez?.finishScreenshot(selected);
-    });
-
-    window.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') window.vibez?.cancelScreenshot();
-    });
-
-    window.addEventListener('contextmenu', (event) => {
-      event.preventDefault();
-      window.vibez?.cancelScreenshot();
-    });
+    window.addEventListener('mousedown',(event)=>{if(event.button!==0)return;startPoint={x:event.clientX,y:event.clientY};draw({x:event.clientX,y:event.clientY,width:0,height:0})});
+    window.addEventListener('mousemove',(event)=>{if(!startPoint)return;draw(rect(startPoint,{x:event.clientX,y:event.clientY}))});
+    window.addEventListener('mouseup',(event)=>{if(event.button!==0||!startPoint)return;const selected=rect(startPoint,{x:event.clientX,y:event.clientY});startPoint=null;if(selected.width<5||selected.height<5){selection.style.display='none';shade.style.display='block';return}window.vibez?.finishScreenshot(selected)});
+    window.addEventListener('keydown',(event)=>{if(event.key==='Escape')window.vibez?.cancelScreenshot()});
+    window.addEventListener('contextmenu',(event)=>{event.preventDefault();window.vibez?.cancelScreenshot()});
   </script>
 </body>
 </html>
