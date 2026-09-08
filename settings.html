@@ -9,7 +9,7 @@
     *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 90% 0,rgba(245,96,55,.09),transparent 34%),#111216}
     main{max-width:760px;margin:0 auto;padding:28px 28px 24px}h1{font-size:24px;margin:0 0 22px}
     section{border:1px solid #2c2d33;background:#18191e;border-radius:14px;margin:0 0 16px;overflow:hidden}section h2{font-size:14px;margin:0;padding:14px 16px;border-bottom:1px solid #292a30;color:#ff9b68}
-    .row{display:grid;grid-template-columns:1fr minmax(180px,260px);gap:18px;align-items:center;padding:13px 16px;border-bottom:1px solid #24252b}.row:last-child{border-bottom:0}.label{font-size:13px;font-weight:600;line-height:1.35}
+    .row{display:grid;grid-template-columns:1fr minmax(180px,260px);gap:18px;align-items:center;padding:13px 16px;border-bottom:1px solid #24252b}.row:last-child{border-bottom:0}.row[hidden]{display:none}.label{font-size:13px;font-weight:600;line-height:1.35}
     input[type=checkbox]{width:18px;height:18px;accent-color:#ef6b45;justify-self:end}select{width:100%;background:#101116;color:#f3efed;border:1px solid #34353d;border-radius:8px;padding:8px 10px;font:inherit;font-size:12px}
     .actions{position:sticky;bottom:0;display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 0 4px;background:linear-gradient(transparent,#111216 30%)}button{border:1px solid #363740;border-radius:9px;background:#202127;color:#f4f0ee;padding:9px 13px;font:600 12px/1 system-ui;cursor:pointer}button.primary{background:linear-gradient(135deg,#8c2938,#ef6037);border-color:#b1433c}button:hover{filter:brightness(1.08)}.status{margin-inline-start:auto;color:#aaa5a2;font-size:11px;max-width:310px;text-align:end}.warn{color:#ffb37f}.danger{color:#ff8c8c}.link{background:transparent;border-color:#2c2d33}
     html[dir="rtl"] body{direction:rtl}html[dir="rtl"] input[type=checkbox]{justify-self:start}html[dir="rtl"] .row{grid-template-columns:minmax(180px,260px) 1fr}html[dir="rtl"] .row>div{grid-column:2}html[dir="rtl"] .row>select,html[dir="rtl"] .row>input,html[dir="rtl"] .row>button{grid-column:1;grid-row:1}html[dir="rtl"] select{text-align:right}
@@ -33,7 +33,7 @@
   <section>
     <h2 data-i18n="display">Display</h2>
     <div class="row"><div><div class="label" data-i18n="hardware">Hardware acceleration</div></div><select id="hardwareAcceleration"><option value="automatic" data-i18n="automatic">Automatic</option><option value="enabled" data-i18n="enabled">Enabled</option><option value="disabled" data-i18n="disabled">Disabled</option></select></div>
-    <div class="row"><div><div class="label" data-i18n="backend">Display backend</div></div><select id="displayBackend"><option value="automatic" data-i18n="automatic">Automatic</option><option value="wayland">Wayland</option><option value="x11">X11</option></select></div>
+    <div class="row" id="displayBackendRow"><div><div class="label" data-i18n="backend">Display backend</div></div><select id="displayBackend"><option value="automatic" data-i18n="automatic">Automatic</option><option value="wayland">Wayland</option><option value="x11">X11</option></select></div>
     <div class="row"><div><div class="label" data-i18n="zoom">Zoom</div></div><select id="zoomFactor"><option value="0.8">80%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.1">110%</option><option value="1.25">125%</option><option value="1.5">150%</option></select></div>
     <div class="row"><div><div class="label" data-i18n="language">VibeZ language</div></div><select id="language"></select></div>
   </section>
@@ -59,6 +59,17 @@
   const el=(id)=>document.getElementById(id);
   let strings={};let currentUi=null;
 
+  const platformText=String(navigator.userAgentData?.platform||navigator.platform||navigator.userAgent||'').toLowerCase();
+  const isMac=platformText.includes('mac');
+  const isLinux=platformText.includes('linux');
+  el('displayBackendRow').hidden=!isLinux;
+  if(isMac){
+    const shortcut=el('screenshotShortcut');
+    for(const option of shortcut.options){
+      option.textContent=option.textContent.replace(/^Ctrl\+/, 'Cmd+').replace(/^Super\+/, 'Cmd+');
+    }
+  }
+
   function tr(key){return strings[key]||key}
   function applyUi(ui){
     currentUi=ui||{};strings=currentUi.strings||{};
@@ -70,7 +81,7 @@
     if(selected)language.value=selected;
   }
   function fill(settings){for(const id of ids){const node=el(id);const value=settings[id];if(node.type==='checkbox')node.checked=Boolean(value);else node.value=String(value)}}
-  function collect(){const out={};for(const id of ids){const node=el(id);out[id]=node.type==='checkbox'?node.checked:node.value}out.zoomFactor=Number(out.zoomFactor);return out}
+  function collect(){const out={};for(const id of ids){const node=el(id);out[id]=node.type==='checkbox'?node.checked:node.value}out.zoomFactor=Number(out.zoomFactor);if(!isLinux)out.displayBackend='automatic';return out}
   function setStatus(message,cls=''){const node=el('status');node.textContent=message;node.className='status '+cls}
 
   window.vibezSettings.get().then((payload)=>{const settings=payload.settings||payload;applyUi(payload.ui||{});fill(settings)}).catch((error)=>setStatus(error.message,'danger'));
