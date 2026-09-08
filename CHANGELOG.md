@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-08
+
+### Added
+- Global screenshot shortcut, available outside the VibeZ window.
+- Native system tray with Open, Screenshot, Settings, update, About and Quit actions.
+- Settings window for screenshot behavior, startup, tray behavior, hardware acceleration, display backend, zoom, language and updates.
+- Optional start at login, minimize to tray and close to tray.
+- Hardware acceleration modes: Automatic, Enabled and Disabled.
+- Display backend selection: Automatic, Wayland and X11.
+- Configurable zoom and interface language preferences.
+- About window with copyable system information for support and bug reports.
+- CLI commands including `vibez --version`, `vibez --screenshot` and `vibez --settings`.
+- `vibez://` protocol integration and single-instance handling.
+- ARM64 AppImage, DEB, RPM and Pacman release packages.
+- x86_64 Flatpak release bundle with Wayland support.
+- SHA-256 checksum file for release assets.
+- One-line installer support for both x86_64 and ARM64, including checksum verification and uninstall mode.
+- Automated dependency security audit in CI and the release pipeline.
+- Packaged x86_64 application smoke test with Chromium sandboxing enabled.
+
+### Changed
+- Reworked Screenshot access so a native desktop entry point remains available even if the Mistral web interface changes.
+- External links now open in the system browser instead of navigating VibeZ away from trusted Mistral pages.
+- Restricted web permissions and navigation to trusted Mistral origins.
+- Update flow now prompts with Restart & update or Later instead of restarting unexpectedly.
+- Updated Electron from 43.4.1 to 43.6.0.
+- Updated electron-builder from 24.13.3 to 26.15.3.
+- Updated GitHub Actions checkout/setup-node workflows to v5.
+- Linux desktop integration now uses an explicit desktop name and application icon.
+- Release workflow now refuses to publish when security audit, tests or packaged-app smoke checks fail.
+
+### Security
+- Reduced renderer exposure through narrow context-isolated preload bridges.
+- Added persistent security auditing with `npm audit --audit-level=high`.
+- Dependency upgrade removed the previously reported high/critical npm audit findings.
+- Chromium sandbox remains enabled in packaged-app smoke testing.
+
+### Fixed
+- Fixed Electron/Chromium sandbox handling in CI smoke tests without disabling the sandbox.
+- Fixed Linux icon and desktop-name configuration for electron-builder 26.
+- Removed the obsolete VibeZ 1.1.0-only Arch build workflow.
+
 ## [1.2.0] - 2026-08-25
 
 ### Added
@@ -40,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/harald666/vibez/releases/tag/v1.3.0
 [1.2.0]: https://github.com/harald666/vibez/releases/tag/v1.2.0
 [1.1.0]: https://github.com/harald666/vibez/releases/tag/v1.1.0
