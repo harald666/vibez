@@ -7,21 +7,33 @@ A simple Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/). Vibe
 ## Features
 
 - Opens the official Mistral Vibe web app in a standalone window.
+- Built-in **Screenshot** button for selecting an area from your screen and sharing it directly with Vibe.
+- Screenshot shortcut: **Ctrl+Shift+S**.
+- Supports multi-monitor setups.
 - Provides Linux installation packages for Debian-based distributions, Fedora-based distributions, Arch Linux and Arch-based distributions, plus AppImage.
 - Checks for new GitHub releases automatically in installed versions.
 
 ## Install on Linux
 
-Download the latest package from the [releases page](https://github.com/harald666/vibez/releases).
+Latest release: **VibeZ 1.2.0**
+
+| Distribution | Download |
+| --- | --- |
+| Debian / Ubuntu / Linux Mint | [VibeZ_1.2.0_amd64.deb](https://github.com/harald666/vibez/releases/download/v1.2.0/VibeZ_1.2.0_amd64.deb) |
+| Fedora / RPM-based | [VibeZ-1.2.0.x86_64.rpm](https://github.com/harald666/vibez/releases/download/v1.2.0/VibeZ-1.2.0.x86_64.rpm) |
+| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.2.0.pacman](https://github.com/harald666/vibez/releases/download/v1.2.0/VibeZ-1.2.0.pacman) |
+| Portable AppImage | [VibeZ-1.2.0.AppImage](https://github.com/harald666/vibez/releases/download/v1.2.0/VibeZ-1.2.0.AppImage) |
+
+All releases are available on the [GitHub Releases page](https://github.com/harald666/vibez/releases).
 
 ### Debian, Ubuntu, and Linux Mint
 
-Open the `.deb` file with your software installer. After installation, **VibeZ** appears in your application menu.
+Download the `.deb` package and open it with your software installer. After installation, **VibeZ** appears in your application menu.
 
 You can also install it from a terminal:
 
 ```bash
-sudo apt install ./VibeZ_1.1.0_amd64.deb
+sudo apt install ./VibeZ_1.2.0_amd64.deb
 ```
 
 ### Fedora
@@ -29,25 +41,31 @@ sudo apt install ./VibeZ_1.1.0_amd64.deb
 Download the RPM package and install it with:
 
 ```bash
-sudo dnf install ./VibeZ-1.1.0.x86_64.rpm
+sudo dnf install ./VibeZ-1.2.0.x86_64.rpm
 ```
 
 ### Arch Linux, Manjaro, and EndeavourOS
 
-Download the Pacman package from the release and install it with:
+Download the Pacman package and install it with:
 
 ```bash
-sudo pacman -U ./VibeZ-1.1.0.pacman
+sudo pacman -U ./VibeZ-1.2.0.pacman
 ```
 
 ### AppImage
 
-If you prefer a portable version, download the AppImage from the same release, make it executable, and run it:
+Download the AppImage, make it executable, and run it:
 
 ```bash
-chmod +x VibeZ-1.1.0.AppImage
-./VibeZ-1.1.0.AppImage
+chmod +x VibeZ-1.2.0.AppImage
+./VibeZ-1.2.0.AppImage
 ```
+
+## Screenshots
+
+VibeZ includes a built-in **Screenshot** button inside the Vibe interface.
+
+Click **Screenshot** or press **Ctrl+Shift+S**, then drag over the part of the screen you want to share. VibeZ supports multiple monitors and makes it easy to capture something outside the VibeZ window without switching applications first.
 
 ## Build from source
 
