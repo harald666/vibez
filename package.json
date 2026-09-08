@@ -19,8 +19,8 @@
     "electron-updater": "^6.8.9"
   },
   "devDependencies": {
-    "electron": "43.4.1",
-    "electron-builder": "^24.13.3"
+    "electron": "^43.6.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.vibez.app",
@@ -30,7 +30,9 @@
     "protocols": [
       {
         "name": "VibeZ",
-        "schemes": ["vibez"]
+        "schemes": [
+          "vibez"
+        ]
       }
     ],
     "publish": {
@@ -43,13 +45,27 @@
       "output": "dist"
     },
     "linux": {
-      "target": ["AppImage", "deb", "rpm", "pacman"],
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "pacman"
+      ],
       "category": "Development",
       "synopsis": "Linux desktop client for Mistral Vibe",
       "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates."
     },
     "pacman": {
-      "depends": ["gtk3", "libnotify", "nss", "libxss", "libxtst", "xdg-utils", "at-spi2-core", "libsecret"]
+      "depends": [
+        "gtk3",
+        "libnotify",
+        "nss",
+        "libxss",
+        "libxtst",
+        "xdg-utils",
+        "at-spi2-core",
+        "libsecret"
+      ]
     },
     "flatpak": {
       "runtime": "org.freedesktop.Platform",
