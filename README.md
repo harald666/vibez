@@ -1,31 +1,60 @@
 # VibeZ
 
-A Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/) with native desktop integration, screenshot tools and automatic updates.
+A free cross-platform desktop client for [Mistral Vibe](https://vibe.mistral.ai/) with native desktop integration, screenshot tools and automatic update checks.
 
 > VibeZ is an independent desktop client and is not affiliated with or supported by Mistral AI. A Mistral account may be required to use Vibe.
 
+## Platforms
+
+VibeZ 1.4.0 brings the same VibeZ experience to all three major desktop platforms from one shared Electron codebase.
+
+| Platform | Architectures | Packages |
+| --- | --- | --- |
+| **Windows** | x64, ARM64 | NSIS `.exe` installer |
+| **macOS** | Apple Silicon, Intel | `.dmg` and `.zip` |
+| **Linux** | x86_64, ARM64 | AppImage, DEB, RPM, Pacman; Flatpak on x86_64 |
+
+Windows and macOS builds are deliberately distributed **unsigned** so VibeZ can remain a zero-cost project. Windows SmartScreen or macOS Gatekeeper may therefore show a security warning on first launch. See **[Windows & macOS installation](WINDOWS-MACOS.md)** for the exact safe installation steps, screenshot permission on macOS and checksum verification.
+
 ## Features
 
-- Opens the official Mistral Vibe web app in a dedicated Linux desktop window.
-- **Global Screenshot** shortcut (`Ctrl+Shift+S` by default): select an area from any screen and send it to VibeZ.
+- Opens the official Mistral Vibe web app in a dedicated desktop window.
+- **Global Screenshot** shortcut (`Ctrl+Shift+S` by default; Command is used on macOS where appropriate).
 - Built-in Screenshot button with multi-monitor support.
-- System tray with Open, Screenshot, Settings, Check for updates, About and Quit actions.
-- Settings for screenshot shortcuts, startup, tray behavior, hardware acceleration, Wayland/X11, zoom, language and updates.
-- VibeZ-owned interface follows the Linux/OS language automatically, with 34 built-in languages and RTL support.
+- System tray/menu-bar access with Open, Screenshot, Settings, Check for updates, About and Quit actions.
+- Platform-aware start-at-login, tray behavior, hardware acceleration, zoom, language and update settings.
+- Wayland/X11 display-backend controls on Linux only.
+- VibeZ-owned interface follows the operating-system language automatically, with 34 built-in languages and RTL support.
 - Optional start at login, minimize to tray and close to tray.
-- Safer update flow with **Restart & update** or **Later** instead of an unexpected restart.
+- Safer update flow with **Restart & update** or **Later** where the platform supports in-app installation.
 - External links open in your normal browser and web permissions are restricted to trusted Mistral pages.
-- About window with version and system information that can be copied for bug reports.
-- CLI commands including `vibez --version`, `vibez --screenshot` and `vibez --settings`.
+- About window with version and system information for bug reports.
 - `vibez://` protocol support.
-- Linux packages for x86_64 and ARM64, plus Flatpak on x86_64.
-- Automatic update checks through GitHub Releases.
+- Automated CI builds and package verification on Linux, Windows and macOS.
+- SHA-256 checksums for public release downloads.
 
-## Install on Linux
+## Download
 
-### Quick install
+Public releases are available on the **[GitHub Releases page](https://github.com/harald666/vibez/releases)**.
 
-Install the latest VibeZ release with one command:
+### Windows
+
+- Most Windows PCs: `VibeZ-<version>-Windows-x64.exe`
+- Windows on ARM: `VibeZ-<version>-Windows-arm64.exe`
+
+Because these installers are unsigned, Windows may show **Windows protected your PC** or **Unknown publisher**. Use the steps in [WINDOWS-MACOS.md](WINDOWS-MACOS.md) when the installer came from this repository.
+
+### macOS
+
+- Apple Silicon (M1/M2/M3/M4 and newer): `VibeZ-<version>-macOS-arm64.dmg`
+- Intel Mac: `VibeZ-<version>-macOS-x64.dmg`
+- ZIP builds are also published for both architectures.
+
+Because these builds are unsigned and not notarized, macOS may block the first launch. Follow [WINDOWS-MACOS.md](WINDOWS-MACOS.md) to allow VibeZ through Gatekeeper. The Screenshot feature also requires macOS Screen & System Audio Recording / Screen Recording permission.
+
+### Linux quick install
+
+Install the latest Linux release with one command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash
@@ -39,104 +68,86 @@ To uninstall a package installed this way:
 curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash -s -- --uninstall
 ```
 
-Latest release: **VibeZ 1.3.2**
+### Linux packages
 
-### Direct downloads — x86_64 / AMD64
+The release page provides:
 
-| Distribution | Download |
-| --- | --- |
-| Debian / Ubuntu / Linux Mint | [VibeZ_1.3.2_amd64.deb](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ_1.3.2_amd64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.2.x86_64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2.x86_64.rpm) |
-| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.3.2.pacman](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2.pacman) |
-| Portable AppImage | [VibeZ-1.3.2.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2.AppImage) |
-| Flatpak bundle | [VibeZ-1.3.2-x86_64.flatpak](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2-x86_64.flatpak) |
+- Debian / Ubuntu / Linux Mint: `.deb`
+- Fedora and RPM-based distributions: `.rpm`
+- Arch Linux / Manjaro / EndeavourOS: `.pacman` / `.pkg.tar.zst`
+- Portable Linux: `.AppImage`
+- Flatpak bundle on x86_64: `.flatpak`
 
-### Direct downloads — ARM64 / AArch64
-
-| Distribution | Download |
-| --- | --- |
-| Debian / Ubuntu | [VibeZ_1.3.2_arm64.deb](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ_1.3.2_arm64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.2.aarch64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2.aarch64.rpm) |
-| Arch-based ARM64 | [VibeZ-1.3.2-aarch64.pacman](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2-aarch64.pacman) |
-| Portable AppImage | [VibeZ-1.3.2-arm64.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.2/VibeZ-1.3.2-arm64.AppImage) |
-
-All releases and checksums are available on the [GitHub Releases page](https://github.com/harald666/vibez/releases).
-
-### Manual package installation
-
-Debian, Ubuntu and Linux Mint:
+Manual examples:
 
 ```bash
-sudo apt install ./VibeZ_1.3.2_amd64.deb
+sudo apt install ./VibeZ_<version>_amd64.deb
+sudo dnf install ./VibeZ-<version>.x86_64.rpm
+sudo pacman -U ./VibeZ-<version>.pacman
+chmod +x VibeZ-<version>.AppImage && ./VibeZ-<version>.AppImage
+flatpak install --user ./VibeZ-<version>-x86_64.flatpak
 ```
 
-Fedora:
+## Security and unsigned Windows/macOS builds
 
-```bash
-sudo dnf install ./VibeZ-1.3.2.x86_64.rpm
-```
+VibeZ does **not** bypass Windows SmartScreen, macOS Gatekeeper or administrator policies. The project simply does not buy the commercial developer certificates used to remove those warnings.
 
-Arch Linux, Manjaro and EndeavourOS:
+For every release:
 
-```bash
-sudo pacman -U ./VibeZ-1.3.2.pacman
-```
+1. Download VibeZ only from this repository or the website linked by this repository.
+2. Download `SHA256SUMS` from the same release.
+3. Verify the checksum if you want an additional integrity check.
+4. Follow the operating-system-specific first-launch instructions in [WINDOWS-MACOS.md](WINDOWS-MACOS.md).
 
-AppImage:
-
-```bash
-chmod +x VibeZ-1.3.2.AppImage
-./VibeZ-1.3.2.AppImage
-```
-
-Flatpak bundle:
-
-```bash
-flatpak install --user ./VibeZ-1.3.2-x86_64.flatpak
-```
+Managed work/school computers can block unsigned software completely; an administrator may be required in that case.
 
 ## Languages
 
-By default, **System** follows the language reported by Linux. VibeZ has complete built-in translations for 34 major languages, including English, Dutch, German, French, Spanish, Italian, Portuguese, Polish, Russian, Ukrainian, Turkish, Simplified and Traditional Chinese, Japanese, Korean, Hindi, Bengali, Punjabi, Marathi, Telugu, Tamil, Gujarati, Indonesian, Vietnamese, Thai, Filipino, Javanese, Swahili, Hausa, Amharic, Arabic, Hebrew, Persian and Urdu.
+By default, **System** follows the language reported by Windows, macOS or Linux. VibeZ has complete built-in translations for 34 major languages, including English, Dutch, German, French, Spanish, Italian, Portuguese, Polish, Russian, Ukrainian, Turkish, Simplified and Traditional Chinese, Japanese, Korean, Hindi, Bengali, Punjabi, Marathi, Telugu, Tamil, Gujarati, Indonesian, Vietnamese, Thai, Filipino, Javanese, Swahili, Hausa, Amharic, Arabic, Hebrew, Persian and Urdu.
 
-Arabic, Hebrew, Persian and Urdu use right-to-left layout in VibeZ-owned interfaces. Unsupported system locales fall back to English. Choosing a VibeZ language manually changes VibeZ's own menus, dialogs, screenshot tools and Settings; it does not force the embedded Mistral Vibe website into that language.
+Arabic, Hebrew, Persian and Urdu use right-to-left layout in VibeZ-owned interfaces. Unsupported system locales fall back to English. Choosing a VibeZ language manually changes VibeZ menus, dialogs, screenshot tools and Settings; it does not force the embedded Mistral Vibe website into that language.
 
 ## Screenshot workflow
 
-Press **Ctrl+Shift+S** from VibeZ or another application, then drag over the area you want to share. VibeZ captures the selected region across multi-monitor setups and brings VibeZ forward.
+Start the Screenshot tool from VibeZ or use the global shortcut, then drag over the area you want to share. VibeZ captures the selected region across multi-monitor setups and brings VibeZ forward.
 
 In Vibe Chat and Work, VibeZ places the screenshot on the clipboard and pastes it into the composer. In Vibe Code, VibeZ keeps the screenshot on the clipboard and shows guidance for saving it into your project as context.
 
-The global shortcut, Screenshot button and shortcut combination can be changed in **Settings**.
+On macOS, screen capture is protected by an operating-system permission. Enable VibeZ under **System Settings → Privacy & Security → Screen & System Audio Recording** (or **Screen Recording** on versions that use that name) when prompted.
 
 ## Desktop integration
 
-VibeZ can stay available in the system tray, start automatically when you sign in, and optionally minimize or close to the tray. Display backend can be set to **Automatic**, **Wayland** or **X11**, and hardware acceleration can be **Automatic**, **Enabled** or **Disabled**.
+VibeZ can stay available in the Windows system tray, macOS menu bar or Linux system tray, start automatically when you sign in, and optionally minimize or close to the tray.
+
+Hardware acceleration can be Automatic, Enabled or Disabled on every platform. Linux additionally exposes Automatic, Wayland and X11 display-backend choices; these Linux-only controls are hidden on Windows and macOS.
 
 ## Command line
 
-Installed package builds expose the `vibez` command:
+Package builds accept:
 
-```bash
-vibez
+```text
 vibez --version
 vibez --screenshot
 vibez --settings
 ```
 
+The executable name/path differs by operating system, so Windows and macOS users will usually launch these through their installed app or a terminal path rather than a globally installed `vibez` shell command.
+
 ## Updates
 
-Installed releases can check GitHub Releases automatically. When an update has downloaded, VibeZ asks whether to **Restart & update** or install it later. Automatic checking and install-on-quit behavior can be configured in Settings.
+VibeZ checks GitHub Releases for updates. Linux and Windows packages use the platform-appropriate updater behavior. For unsigned macOS builds, VibeZ may direct the user to the GitHub release when macOS security rules prevent an in-place update.
+
+Automatic checking and install-on-quit behavior can be configured in Settings where supported.
 
 ## Build from source
 
 ### Requirements
 
-- Linux
+- Windows, macOS or Linux
 - A current Node.js LTS release
 - npm
 
-### Steps
+### Development
 
 ```bash
 git clone https://github.com/harald666/vibez.git
@@ -146,13 +157,13 @@ npm test
 npm start
 ```
 
-Build the configured Linux packages with:
+Build the packages configured for the current operating system with:
 
 ```bash
 npm run build
 ```
 
-The release pipeline additionally builds x86_64 and ARM64 AppImage/DEB/RPM/Pacman packages, an x86_64 Flatpak bundle and a `SHA256SUMS` file.
+Public release packages are built on native GitHub Actions runners: Ubuntu for Linux, Windows for Windows installers and macOS for DMG/ZIP packages.
 
 ## Testing
 
@@ -160,20 +171,22 @@ GitHub CI runs:
 
 - dependency security audit at high severity and above;
 - unit tests and JavaScript syntax checks;
-- shell syntax validation for the installer;
-- x86_64 package builds;
-- ARM64 package builds;
-- Flatpak build;
-- a packaged x86_64 application smoke test under a virtual Linux display with Chromium sandboxing enabled.
+- shell syntax validation for the Linux installer;
+- x86_64 and ARM64 Linux package builds;
+- x86_64 Flatpak build;
+- Windows x64 and ARM64 NSIS builds;
+- macOS Intel and Apple Silicon DMG/ZIP builds;
+- packaged-app version smoke checks on all supported native CI runners where practical;
+- a full Linux packaged application smoke test under a virtual display with Chromium sandboxing enabled.
 
-## Development
+## Project structure
 
-VibeZ is built with [Electron](https://www.electronjs.org/). The main application code is in [`main.js`](main.js), screenshot handling is in [`screenshot.js`](screenshot.js), and persistent desktop preferences are handled by [`settings-store.js`](settings-store.js).
-
-## License
-
-VibeZ is released under the [MIT License](LICENSE).
+VibeZ is built with [Electron](https://www.electronjs.org/). The main application code is in [`main.js`](main.js), screenshot handling is in [`screenshot.js`](screenshot.js), persistent desktop preferences are handled by [`settings-store.js`](settings-store.js), and GitHub Actions workflows live in [`.github/workflows`](.github/workflows).
 
 ## Privacy
 
 See the [Privacy Policy](PRIVACY.md) for details about local settings, browser data, screenshots, Mistral Vibe and update checks.
+
+## License
+
+VibeZ is released under the [MIT License](LICENSE).
