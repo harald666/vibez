@@ -129,22 +129,29 @@ async function positionScreenshotButton() {
         };
         const textOf = (el) => [el.innerText, el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
           .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
-        const signupWords = [
-          'aanmelden','registreren','sign up','register','create account','konto erstellen','registrieren',
-          's’inscrire','inscription','registrarse','crear cuenta','registrati','crea account','registar','criar conta',
-          '注册','註冊','创建账户','建立帳戶','إنشاء حساب','تسجيل','साइन अप','登録','가입','регистрация','зарегистрироваться',
-          'kayıt ol','zarejestruj','реєстрація','daftar','đăng ký','สมัคร','הרשמה','ثبت نام','رجسٹر','নিবন্ধন'
+        const accountWords = [
+          'aanmelden','registreren','inloggen','sign up','register','create account','sign in','login','log in',
+          'konto erstellen','registrieren','anmelden','einloggen','s’inscrire','inscription','se connecter','connexion',
+          'registrarse','crear cuenta','iniciar sesión','entrar','registrati','crea account','accedi','registar','criar conta','iniciar sessão',
+          '注册','註冊','创建账户','建立帳戶','登录','登入','إنشاء حساب','تسجيل','تسجيل الدخول',
+          'साइन अप','साइन इन','लॉग इन','登録','ログイン','가입','로그인','регистрация','зарегистрироваться','войти','вход',
+          'kayıt ol','giriş yap','zarejestruj','zaloguj się','реєстрація','увійти','вхід','daftar','masuk','đăng ký','đăng nhập',
+          'สมัคร','เข้าสู่ระบบ','הרשמה','התחברות','היכנס','ثبت نام','ورود','رجسٹر','لاگ ان','নিবন্ধন','লগ ইন'
         ];
         const nodes = [...document.querySelectorAll('button,a,[role="button"]')]
           .filter(visible)
           .map((el) => ({ el, text: textOf(el), rect: el.getBoundingClientRect() }))
           .filter((item) => item.rect.left > window.innerWidth * 0.55);
-        let match = nodes.find((item) => signupWords.some((word) => item.text === word || item.text.includes(word)));
-        if (!match) {
-          match = nodes
-            .filter((item) => item.rect.width >= 55 && item.rect.width <= 240)
-            .sort((a, b) => b.rect.right - a.rect.right)[0];
+        const accountMatches = nodes.filter((item) => accountWords.some((word) => item.text === word || item.text.includes(word)));
+        if (accountMatches.length) {
+          const left = Math.min(...accountMatches.map((item) => item.rect.left));
+          const top = Math.min(...accountMatches.map((item) => item.rect.top));
+          const bottom = Math.max(...accountMatches.map((item) => item.rect.bottom));
+          return { left, top, width: 0, height: bottom - top };
         }
+        const match = nodes
+          .filter((item) => item.rect.width >= 55 && item.rect.width <= 240)
+          .sort((a, b) => b.rect.right - a.rect.right)[0];
         if (!match) return null;
         const r = match.rect;
         return { left: r.left, top: r.top, width: r.width, height: r.height };
@@ -172,6 +179,7 @@ function shouldShowScreenshotButton() {
     mainWindow &&
     !mainWindow.isDestroyed() &&
     mainWindow.isVisible() &&
+    mainWindow.isFocused() &&
     !mainWindow.isMinimized() &&
     mainWindow.getBounds().width >= 620
   );
@@ -262,6 +270,8 @@ function createScreenshotButtonWindow() {
     fullscreenable: false,
     skipTaskbar: true,
     hasShadow: false,
+    alwaysOnTop: true,
+    focusable: false,
     parent: mainWindow,
     webPreferences: {
       preload: path.join(__dirname, 'native-button-preload.js'),
@@ -476,6 +486,7 @@ function createMainWindow() {
   mainWindow.on('unmaximize', () => setTimeout(refreshScreenshotButtonVisibility, 40));
   mainWindow.on('show', refreshScreenshotButtonVisibility);
   mainWindow.on('focus', () => setTimeout(refreshScreenshotButtonVisibility, 100));
+  mainWindow.on('blur', () => screenshotButtonWindow?.hide());
   mainWindow.on('hide', () => screenshotButtonWindow?.hide());
   mainWindow.on('minimize', (event) => {
     screenshotButtonWindow?.hide();

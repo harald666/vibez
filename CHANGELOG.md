@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-09-08
+
+### Fixed
+- Screenshot now anchors to the left edge of the complete account-action cluster, so separate Sign in / Login and Sign up / Register controls cannot overlap it.
+- Native Screenshot overlay is kept above the embedded Mistral web content while VibeZ is focused.
+- Screenshot overlay is hidden when VibeZ loses focus, preventing it from floating above other applications.
+
 ## [1.3.1] - 2026-09-08
 
 ### Added
@@ -101,7 +108,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/harald666/vibez/releases/tag/v1.3.2
 [1.3.1]: https://github.com/harald666/vibez/releases/tag/v1.3.1
 [1.3.0]: https://github.com/harald666/vibez/releases/tag/v1.3.0
 [1.2.0]: https://github.com/harald666/vibez/releases/tag/v1.2.0
