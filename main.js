@@ -10,6 +10,7 @@ const {
   clipboard,
   nativeImage,
   session,
+  systemPreferences,
 } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const fs = require('fs');
@@ -41,10 +42,10 @@ if (settings.hardwareAcceleration === 'disabled') {
   app.commandLine.appendSwitch('enable-gpu-rasterization');
 }
 
-if (settings.displayBackend === 'wayland') {
+if (process.platform === 'linux' && settings.displayBackend === 'wayland') {
   app.commandLine.appendSwitch('enable-features', 'UseOzonePlatform');
   app.commandLine.appendSwitch('ozone-platform', 'wayland');
-} else if (settings.displayBackend === 'x11') {
+} else if (process.platform === 'linux' && settings.displayBackend === 'x11') {
   app.commandLine.appendSwitch('ozone-platform', 'x11');
 }
 
@@ -206,7 +207,9 @@ async function suppressInjectedScreenshotButton() {
 async function syncNativeScreenshotButtonText() {
   if (!screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
   const ui = currentUiBundle();
-  const shortcut = String(settings.screenshotShortcut || '').replace('CommandOrControl', 'Ctrl');
+  const shortcut = String(settings.screenshotShortcut || '')
+    .replace('CommandOrControl', process.platform === 'darwin' ? 'Cmd' : 'Ctrl')
+    .replace('Super', process.platform === 'darwin' ? 'Cmd' : 'Super');
   try {
     const desiredWidth = await screenshotButtonWindow.webContents.executeJavaScript(`
       window.__vibezSetUi?.(${JSON.stringify({ language: ui.language, dir: ui.dir, label: ui.strings.screenshot, shortcut })}) || 146
@@ -222,6 +225,28 @@ async function syncNativeScreenshotButtonText() {
 
 async function triggerScreenshot() {
   if (!mainWindow || mainWindow.isDestroyed()) return false;
+
+  if (process.platform === 'darwin' && typeof systemPreferences.getMediaAccessStatus === 'function') {
+    const status = systemPreferences.getMediaAccessStatus('screen');
+    if (status === 'denied' || status === 'restricted') {
+      ensureMainVisible();
+      const text = uiText();
+      const result = await showMessageBox({
+        type: 'warning',
+        title: `VibeZ · ${text.shotFailed}`,
+        message: text.shotFailedMessage,
+        detail: 'macOS requires Screen & System Audio Recording (Screen Recording) permission for screenshots. Enable VibeZ in System Settings → Privacy & Security, then try again.',
+        buttons: [text.settings, text.close],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (result.response === 0) {
+        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture').catch(() => {});
+      }
+      return false;
+    }
+  }
+
   ensureMainVisible();
   screenshotButtonWindow?.hide();
 
@@ -405,6 +430,23 @@ function autostartCommand() {
 function syncAutostart(enabled) {
   if (!app.isPackaged) return true;
   try {
+    if (process.platform === 'win32') {
+      app.setLoginItemSettings({
+        openAtLogin: Boolean(enabled),
+        path: process.execPath,
+        args: ['--hidden'],
+      });
+      return app.getLoginItemSettings().openAtLogin === Boolean(enabled);
+    }
+
+    if (process.platform === 'darwin') {
+      app.setLoginItemSettings({
+        openAtLogin: Boolean(enabled),
+        openAsHidden: true,
+      });
+      return app.getLoginItemSettings().openAtLogin === Boolean(enabled);
+    }
+
     const dir = path.join(os.homedir(), '.config', 'autostart');
     const file = path.join(dir, 'vibez.desktop');
     if (!enabled) {
@@ -571,32 +613,46 @@ function quitApp() {
   app.quit();
 }
 
-function distroName() {
+function operatingSystemName() {
+  if (process.platform === 'win32') return `Windows ${os.release()}`;
+  if (process.platform === 'darwin') return `macOS ${os.release()}`;
   try {
     const text = fs.readFileSync('/etc/os-release', 'utf8');
     const match = text.match(/^PRETTY_NAME=(.*)$/m);
-    return match ? match[1].replace(/^"|"$/g, '') : 'Linux';
+    return match ? match[1].replace(/^"|"$/g, '') : `Linux ${os.release()}`;
   } catch (_) {
-    return 'Linux';
+    return `Linux ${os.release()}`;
   }
 }
 
 function systemInfoText() {
-  return [
+  const lines = [
     `VibeZ: ${app.getVersion()}`,
     `Electron: ${process.versions.electron}`,
     `Chromium: ${process.versions.chrome}`,
     `Node.js: ${process.versions.node}`,
-    `OS: ${distroName()}`,
-    `Kernel: ${os.release()}`,
+    `OS: ${operatingSystemName()}`,
+    `OS version: ${typeof os.version === 'function' ? os.version() : os.release()}`,
     `Architecture: ${process.arch}`,
-    `Session: ${process.env.XDG_SESSION_TYPE || 'unknown'}`,
-    `Desktop: ${process.env.XDG_CURRENT_DESKTOP || 'unknown'}`,
-    `Display backend setting: ${settings.displayBackend}`,
+    `Platform: ${process.platform}`,
     `Hardware acceleration setting: ${settings.hardwareAcceleration}`,
-    `Flatpak: ${process.env.FLATPAK_ID || 'no'}`,
-    `AppImage: ${process.env.APPIMAGE ? 'yes' : 'no'}`,
-  ].join('\n');
+  ];
+
+  if (process.platform === 'linux') {
+    lines.push(
+      `Session: ${process.env.XDG_SESSION_TYPE || 'unknown'}`,
+      `Desktop: ${process.env.XDG_CURRENT_DESKTOP || 'unknown'}`,
+      `Display backend setting: ${settings.displayBackend}`,
+      `Flatpak: ${process.env.FLATPAK_ID || 'no'}`,
+      `AppImage: ${process.env.APPIMAGE ? 'yes' : 'no'}`,
+    );
+  }
+
+  if (process.platform === 'darwin' && typeof systemPreferences.getMediaAccessStatus === 'function') {
+    lines.push(`Screen recording permission: ${systemPreferences.getMediaAccessStatus('screen')}`);
+  }
+
+  return lines.join('\n');
 }
 
 async function showAbout() {
@@ -655,14 +711,15 @@ function installIpcHandlers() {
 
   ipcMain.handle('vibez:settings:get', (event) => {
     if (!validSettingsSender(event)) throw new Error('Unauthorized settings request.');
-    return { settings, ui: currentUiBundle() };
+    return { settings, ui: currentUiBundle(), platform: process.platform };
   });
 
   ipcMain.handle('vibez:settings:save', async (event, patch) => {
     if (!validSettingsSender(event)) throw new Error('Unauthorized settings request.');
     const previous = settings;
     settings = settingsStore.patch(patch);
-    const restartRequired = previous.hardwareAcceleration !== settings.hardwareAcceleration || previous.displayBackend !== settings.displayBackend || previous.language !== settings.language;
+    const displayBackendChanged = process.platform === 'linux' && previous.displayBackend !== settings.displayBackend;
+    const restartRequired = previous.hardwareAcceleration !== settings.hardwareAcceleration || displayBackendChanged || previous.language !== settings.language;
     const shortcutRegistered = registerGlobalScreenshot();
     const autostartApplied = syncAutostart(settings.startAtLogin);
     applyZoom();
@@ -672,7 +729,7 @@ function installIpcHandlers() {
     rebuildTray();
     buildApplicationMenu();
     await syncNativeScreenshotButtonText();
-    return { settings, ui: currentUiBundle(), restartRequired, shortcutRegistered, autostartApplied };
+    return { settings, ui: currentUiBundle(), platform: process.platform, restartRequired, shortcutRegistered, autostartApplied };
   });
 
   ipcMain.handle('vibez:updates:check', (event) => {
@@ -755,6 +812,20 @@ function checkForUpdates(manual = false) {
     if (manual) showMessageBox({ type: 'info', title: `VibeZ · ${text.updates}`, message: text.flatpakBuild, buttons: [text.openReleases, text.close], defaultId: 0 }).then((result) => { if (result.response === 0) shell.openExternal(RELEASES_URL); });
     return;
   }
+  if (process.platform === 'darwin') {
+    if (manual) {
+      showMessageBox({
+        type: 'info',
+        title: `VibeZ · ${text.updates}`,
+        message: 'Unsigned macOS builds are updated manually from GitHub Releases.',
+        detail: 'This avoids unreliable in-place installation without a paid Apple signing identity.',
+        buttons: [text.openReleases, text.close],
+        defaultId: 0,
+        cancelId: 1,
+      }).then((result) => { if (result.response === 0) shell.openExternal(RELEASES_URL); });
+    }
+    return;
+  }
   installUpdaterHandlers();
   autoUpdater.checkForUpdates().catch((error) => console.error('Update check failed:', error));
 }
@@ -817,13 +888,14 @@ app.whenReady().then(() => {
 
   if (app.isPackaged) {
     installUpdaterHandlers();
-    if (settings.autoUpdates && !process.env.FLATPAK_ID) checkForUpdates(false);
+    if (settings.autoUpdates && !process.env.FLATPAK_ID && process.platform !== 'darwin') checkForUpdates(false);
   }
 });
 
 app.on('before-quit', () => { isQuitting = true; });
 app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => {
+  if (process.platform === 'darwin' && !isQuitting) return;
   if (isQuitting || !settings.closeToTray) {
     isQuitting = true;
     app.quit();

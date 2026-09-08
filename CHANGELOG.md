@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-08
+
+### Added
+- Windows x64 and Windows ARM64 NSIS installers.
+- macOS DMG and ZIP packages for Apple Silicon and Intel Macs.
+- Native Windows and macOS package verification in GitHub Actions alongside the existing Linux build matrix.
+- Cross-platform download and first-launch documentation, including SmartScreen and Gatekeeper guidance for the zero-cost unsigned builds.
+- Platform-aware start-at-login implementation for Windows and macOS while preserving Linux XDG autostart.
+- macOS Screen Recording permission detection and a direct route to the relevant System Settings page when access is blocked.
+
+### Changed
+- VibeZ is now presented as a Windows, macOS and Linux desktop client from one shared Electron codebase.
+- Linux-only Wayland/X11 settings are hidden on Windows and macOS and no longer affect those platforms.
+- System information and shortcut labels are platform-aware.
+- Free unsigned macOS builds use manual GitHub Release updates instead of claiming reliable unsigned in-place installation.
+- Release automation builds, verifies, checksums and publishes Linux, Windows and macOS packages together.
+
+### Security
+- Windows and macOS packages remain unsigned by design to keep distribution at €0; release documentation explains the resulting OS warnings and SHA-256 verification.
+- Existing renderer sandboxing, trusted-origin restrictions and dependency security auditing are preserved on all platforms.
+
 ## [1.3.2] - 2026-09-08
 
 ### Fixed
@@ -108,7 +129,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/harald666/vibez/releases/tag/v1.4.0
 [1.3.2]: https://github.com/harald666/vibez/releases/tag/v1.3.2
 [1.3.1]: https://github.com/harald666/vibez/releases/tag/v1.3.1
 [1.3.0]: https://github.com/harald666/vibez/releases/tag/v1.3.0

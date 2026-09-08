@@ -135,9 +135,9 @@ The executable name/path differs by operating system, so Windows and macOS users
 
 ## Updates
 
-VibeZ checks GitHub Releases for updates. Linux and Windows packages use the platform-appropriate updater behavior. For unsigned macOS builds, VibeZ may direct the user to the GitHub release when macOS security rules prevent an in-place update.
+VibeZ checks GitHub Releases for updates. Linux and Windows packages support VibeZ's in-app update flow where their package type allows it. The free unsigned macOS builds use **manual updates from GitHub Releases** because reliable in-place macOS updating requires a signed application.
 
-Automatic checking and install-on-quit behavior can be configured in Settings where supported.
+Automatic checking and install-on-quit behavior can be configured in Settings where supported. Those two controls are hidden on unsigned macOS builds.
 
 ## Build from source
 

@@ -79,9 +79,11 @@ shasum -a 256 VibeZ-1.4.0-macOS-arm64.dmg
 
 The calculated value must exactly match the corresponding line in `SHA256SUMS` on the GitHub release.
 
-## Automatic updates
+## Updates
 
-VibeZ checks GitHub Releases for updates. When an update has downloaded, VibeZ asks whether to restart and install it or postpone it. Because Windows and macOS builds are unsigned, the operating system may show its normal security warning again for a newly downloaded version.
+**Windows:** VibeZ can use the normal in-app update flow. Because the installer is unsigned, Windows may show its normal security warning again for a new version.
+
+**macOS:** the free unsigned build deliberately uses manual updates from GitHub Releases. Reliable in-place macOS updating requires a signed application, so VibeZ opens the Releases page instead of pretending an unsigned automatic install is reliable.
 
 ## Why are the builds unsigned?
 

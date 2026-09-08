@@ -40,8 +40,8 @@
 
   <section>
     <h2 data-i18n="updatesBrowser">Updates & browser</h2>
-    <div class="row"><div><div class="label" data-i18n="autoUpdates">Check for updates automatically</div></div><input id="autoUpdates" type="checkbox"></div>
-    <div class="row"><div><div class="label" data-i18n="installOnQuit">Install downloaded updates when VibeZ closes</div></div><input id="installUpdatesOnQuit" type="checkbox"></div>
+    <div class="row" id="autoUpdatesRow"><div><div class="label" data-i18n="autoUpdates">Check for updates automatically</div></div><input id="autoUpdates" type="checkbox"></div>
+    <div class="row" id="installOnQuitRow"><div><div class="label" data-i18n="installOnQuit">Install downloaded updates when VibeZ closes</div></div><input id="installUpdatesOnQuit" type="checkbox"></div>
     <div class="row"><div><div class="label" data-i18n="externalLinks">Open external links in your default browser</div></div><input id="openExternalLinks" type="checkbox"></div>
     <div class="row"><div><div class="label" data-i18n="browserData">Browser data</div></div><button id="resetData" class="danger" data-i18n="resetData">Reset browser data</button></div>
   </section>
@@ -59,14 +59,17 @@
   const el=(id)=>document.getElementById(id);
   let strings={};let currentUi=null;
 
-  const platformText=String(navigator.userAgentData?.platform||navigator.platform||navigator.userAgent||'').toLowerCase();
-  const isMac=platformText.includes('mac');
-  const isLinux=platformText.includes('linux');
-  el('displayBackendRow').hidden=!isLinux;
-  if(isMac){
-    const shortcut=el('screenshotShortcut');
-    for(const option of shortcut.options){
-      option.textContent=option.textContent.replace(/^Ctrl\+/, 'Cmd+').replace(/^Super\+/, 'Cmd+');
+  let platform='linux';let isMac=false;let isLinux=true;
+  function applyPlatform(value){
+    platform=String(value||'linux');isMac=platform==='darwin';isLinux=platform==='linux';
+    el('displayBackendRow').hidden=!isLinux;
+    el('autoUpdatesRow').hidden=isMac;
+    el('installOnQuitRow').hidden=isMac;
+    if(isMac){
+      const shortcut=el('screenshotShortcut');
+      for(const option of shortcut.options){
+        option.textContent=option.textContent.replace(/^Ctrl\+/, 'Cmd+').replace(/^Super\+/, 'Cmd+');
+      }
     }
   }
 
@@ -84,7 +87,7 @@
   function collect(){const out={};for(const id of ids){const node=el(id);out[id]=node.type==='checkbox'?node.checked:node.value}out.zoomFactor=Number(out.zoomFactor);if(!isLinux)out.displayBackend='automatic';return out}
   function setStatus(message,cls=''){const node=el('status');node.textContent=message;node.className='status '+cls}
 
-  window.vibezSettings.get().then((payload)=>{const settings=payload.settings||payload;applyUi(payload.ui||{});fill(settings)}).catch((error)=>setStatus(error.message,'danger'));
+  window.vibezSettings.get().then((payload)=>{applyPlatform(payload.platform);const settings=payload.settings||payload;applyUi(payload.ui||{});fill(settings)}).catch((error)=>setStatus(error.message,'danger'));
   el('save').addEventListener('click',async()=>{setStatus(tr('saving'));try{const result=await window.vibezSettings.save(collect());if(result.ui)applyUi(result.ui);fill(result.settings);if(result.restartRequired)setStatus(tr('restartNeeded'),'warn');else if(result.shortcutRegistered===false)setStatus(tr('shortcutBusy'),'warn');else setStatus(tr('saved'))}catch(error){setStatus(error.message,'danger')}});
   el('cancel').addEventListener('click',()=>window.vibezSettings.close());
   el('about').addEventListener('click',()=>window.vibezSettings.showAbout());
