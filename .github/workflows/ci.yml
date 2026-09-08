@@ -45,13 +45,32 @@ jobs:
           test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f -name '*.rpm' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f \( -name '*.pacman' -o -name '*.pkg.tar.zst' \) -print -quit)"
+      - name: Prepare Chromium sandbox for smoke test
+        run: |
+          SANDBOX="dist/linux-unpacked/chrome-sandbox"
+          test -f "$SANDBOX"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
+          stat -c '%U:%G %a %n' "$SANDBOX"
       - name: Smoke test packaged app
         shell: bash
+        env:
+          ELECTRON_ENABLE_LOGGING: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           APP="dist/linux-unpacked/vibez"
           test -x "$APP"
           EXPECTED="$(node -p "require('./package.json').version")"
-          ACTUAL="$(xvfb-run -a "$APP" --version | tail -n 1)"
+
+          set +e
+          ACTUAL="$(xvfb-run -a "$APP" --version 2>/tmp/vibez-version.log | tail -n 1)"
+          version_code=$?
+          set -e
+          if [ "$version_code" -ne 0 ]; then
+            cat /tmp/vibez-version.log
+            echo "VibeZ --version failed during smoke test (code $version_code)." >&2
+            exit 1
+          fi
           test "$ACTUAL" = "$EXPECTED"
 
           set +e
@@ -85,6 +104,8 @@ jobs:
           find dist -maxdepth 1 -type f -print
           test -n "$(find dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.rpm' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f \( -name '*.pacman' -o -name '*.pkg.tar.zst' \) -print -quit)"
 
   flatpak-x64:
     needs: test
