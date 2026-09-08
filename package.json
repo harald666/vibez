@@ -1,6 +1,7 @@
 {
   "name": "VibeZ",
   "version": "1.2.0",
+  "desktopName": "com.vibez.app",
   "description": "A graphical Linux desktop client for Mistral Vibe",
   "license": "MIT",
   "homepage": "https://github.com/harald666/vibez",
@@ -26,7 +27,6 @@
     "appId": "com.vibez.app",
     "productName": "VibeZ",
     "executableName": "vibez",
-    "icon": "build/icons/icon_512x512.png",
     "protocols": [
       {
         "name": "VibeZ",
@@ -45,6 +45,7 @@
       "output": "dist"
     },
     "linux": {
+      "icon": "build/icons/icon_512x512.png",
       "target": [
         "AppImage",
         "deb",
@@ -54,7 +55,6 @@
       "category": "Development",
       "synopsis": "Linux desktop client for Mistral Vibe",
       "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates.",
-      "desktopName": "VibeZ",
       "syncDesktopName": true
     },
     "pacman": {
