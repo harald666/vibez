@@ -1,0 +1,91 @@
+name: VibeZ CI
+
+on:
+  push:
+    branches: [main, v1.3.0-dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  package-x64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+      - run: npm ci
+      - name: Build x64 packages without publishing
+        run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
+      - name: Verify x64 package outputs
+        run: |
+          find dist -maxdepth 1 -type f -print
+          test -n "$(find dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.rpm' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f \( -name '*.pacman' -o -name '*.pkg.tar.zst' \) -print -quit)"
+
+  package-arm64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+      - run: npm ci
+      - name: Build ARM64 packages without publishing
+        run: npx electron-builder --linux AppImage deb rpm pacman --arm64 --publish never
+      - name: Verify ARM64 package outputs
+        run: |
+          find dist -maxdepth 1 -type f -print
+          test -n "$(find dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
+
+  flatpak-x64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Flatpak build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+      - run: npm ci
+      - run: npm install --no-save @malept/flatpak-bundler@0.4.0
+      - name: Build Flatpak bundle without publishing
+        run: npx electron-builder --linux flatpak --x64 --publish never
+      - name: Verify Flatpak output
+        run: test -n "$(find dist -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
