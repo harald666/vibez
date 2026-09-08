@@ -21,6 +21,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Adapt patch to current Screenshot positioning
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/wire-i18n-v1.3.1.js')
+          s=p.read_text()
+          s=s.replace("'    const width = 146;\\n    const height = 48;'", "'  const width = 146;\\n  const height = 48;'")
+          s=s.replace("'    const buttonBounds = screenshotButtonWindow.getBounds();\\n    const width = Math.max(146, buttonBounds.width || 146);\\n    const height = 48;'", "'  const buttonBounds = screenshotButtonWindow.getBounds();\\n  const width = Math.max(146, buttonBounds.width || 146);\\n  const height = 48;'")
+          p.write_text(s)
+          PY
       - name: Apply i18n wiring
         run: node .github/scripts/wire-i18n-v1.3.1.js
       - run: npm test
