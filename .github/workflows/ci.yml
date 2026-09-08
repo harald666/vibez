@@ -34,7 +34,7 @@ jobs:
       - name: Install packaging tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools
+          sudo apt-get install -y rpm libarchive-tools xvfb
       - run: npm ci
       - name: Build x64 packages without publishing
         run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
@@ -45,6 +45,24 @@ jobs:
           test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f -name '*.rpm' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f \( -name '*.pacman' -o -name '*.pkg.tar.zst' \) -print -quit)"
+      - name: Smoke test packaged app
+        shell: bash
+        run: |
+          APP="dist/linux-unpacked/vibez"
+          test -x "$APP"
+          EXPECTED="$(node -p "require('./package.json').version")"
+          ACTUAL="$(xvfb-run -a "$APP" --version | tail -n 1)"
+          test "$ACTUAL" = "$EXPECTED"
+
+          set +e
+          xvfb-run -a timeout 12s "$APP" --hidden > /tmp/vibez-smoke.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 124 ]; then
+            cat /tmp/vibez-smoke.log
+            echo "VibeZ exited unexpectedly during smoke test (code $code)." >&2
+            exit 1
+          fi
 
   package-arm64:
     needs: test
