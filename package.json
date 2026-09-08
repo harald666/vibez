@@ -26,7 +26,7 @@
     "appId": "com.vibez.app",
     "productName": "VibeZ",
     "executableName": "vibez",
-    "icon": "build/icons",
+    "icon": "build/icons/icon_512x512.png",
     "protocols": [
       {
         "name": "VibeZ",
@@ -53,7 +53,9 @@
       ],
       "category": "Development",
       "synopsis": "Linux desktop client for Mistral Vibe",
-      "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates."
+      "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates.",
+      "desktopName": "VibeZ",
+      "syncDesktopName": true
     },
     "pacman": {
       "depends": [
