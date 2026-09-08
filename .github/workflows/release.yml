@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -63,7 +63,7 @@ jobs:
         if: steps.release.outputs.exists == 'false'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools flatpak flatpak-builder
+          sudo apt-get install -y rpm libarchive-tools flatpak flatpak-builder xvfb
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
@@ -73,6 +73,10 @@ jobs:
           npm ci
           npm install --no-save @malept/flatpak-bundler@0.4.0
 
+      - name: Security audit
+        if: steps.release.outputs.exists == 'false'
+        run: npm audit --audit-level=high
+
       - name: Run tests
         if: steps.release.outputs.exists == 'false'
         run: npm test
@@ -80,6 +84,47 @@ jobs:
       - name: Build x64 Linux packages
         if: steps.release.outputs.exists == 'false'
         run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
+
+      - name: Prepare Chromium sandbox for smoke test
+        if: steps.release.outputs.exists == 'false'
+        run: |
+          SANDBOX="dist/linux-unpacked/chrome-sandbox"
+          test -f "$SANDBOX"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
+          stat -c '%U:%G %a %n' "$SANDBOX"
+
+      - name: Smoke test packaged x64 app
+        if: steps.release.outputs.exists == 'false'
+        shell: bash
+        env:
+          ELECTRON_ENABLE_LOGGING: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          APP="dist/linux-unpacked/vibez"
+          test -x "$APP"
+          EXPECTED="$(node -p "require('./package.json').version")"
+
+          set +e
+          ACTUAL="$(xvfb-run -a "$APP" --version 2>/tmp/vibez-version.log | tail -n 1)"
+          version_code=$?
+          set -e
+          if [ "$version_code" -ne 0 ]; then
+            cat /tmp/vibez-version.log
+            echo "VibeZ --version failed during release smoke test (code $version_code)." >&2
+            exit 1
+          fi
+          test "$ACTUAL" = "$EXPECTED"
+
+          set +e
+          xvfb-run -a timeout 12s "$APP" --hidden > /tmp/vibez-smoke.log 2>&1
+          code=$?
+          set -e
+          if [ "$code" -ne 124 ]; then
+            cat /tmp/vibez-smoke.log
+            echo "VibeZ exited unexpectedly during release smoke test (code $code)." >&2
+            exit 1
+          fi
 
       - name: Build ARM64 Linux packages
         if: steps.release.outputs.exists == 'false'
