@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Adapt patch to current Screenshot positioning
+      - name: Adapt patch to current code
         shell: bash
         run: |
           python3 - <<'PY'
@@ -30,6 +30,7 @@ jobs:
           s=p.read_text()
           s=s.replace("'    const width = 146;\\n    const height = 48;'", "'  const width = 146;\\n  const height = 48;'")
           s=s.replace("'    const buttonBounds = screenshotButtonWindow.getBounds();\\n    const width = Math.max(146, buttonBounds.width || 146);\\n    const height = 48;'", "'  const buttonBounds = screenshotButtonWindow.getBounds();\\n  const width = Math.max(146, buttonBounds.width || 146);\\n  const height = 48;'")
+          s=s.replace("shell.openExternal(\\`${REPO_URL}/issues/new\\`);", "shell.openExternal(\\`\\${REPO_URL}/issues/new\\`);")
           p.write_text(s)
           PY
       - name: Apply i18n wiring
