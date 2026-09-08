@@ -13,167 +13,316 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-linux:
+  test:
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-
-      - name: Read version
-        id: version
-        shell: bash
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Prepare release notes from changelog
-        shell: bash
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          awk -v version="$VERSION" '
-            $0 ~ "^## \\[" version "\\]" { capture=1; next }
-            capture && /^## \[/ { exit }
-            capture { print }
-          ' CHANGELOG.md > release-notes.md
-          if [ ! -s release-notes.md ]; then printf 'See CHANGELOG.md for details.\n' > release-notes.md; fi
-
-      - name: Check whether release already exists
-        id: release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          if gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release v${VERSION} already exists; skipping package rebuild."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install Linux packaging dependencies
-        if: steps.release.outputs.exists == 'false'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools flatpak flatpak-builder xvfb
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-
-      - name: Install dependencies
-        if: steps.release.outputs.exists == 'false'
-        run: |
-          npm ci
-          npm install --no-save @malept/flatpak-bundler@0.4.0
-
+      - run: npm ci
       - name: Security audit
-        if: steps.release.outputs.exists == 'false'
         run: npm audit --audit-level=high
-
       - name: Run tests
-        if: steps.release.outputs.exists == 'false'
         run: npm test
 
-      - name: Build x64 Linux packages
-        if: steps.release.outputs.exists == 'false'
-        run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
-
-      - name: Prepare Chromium sandbox for smoke test
-        if: steps.release.outputs.exists == 'false'
+  linux-x64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install packaging tools
         run: |
-          SANDBOX="dist/linux-unpacked/chrome-sandbox"
-          test -f "$SANDBOX"
-          sudo chown root:root "$SANDBOX"
-          sudo chmod 4755 "$SANDBOX"
-          stat -c '%U:%G %a %n' "$SANDBOX"
-
-      - name: Smoke test packaged x64 app
-        if: steps.release.outputs.exists == 'false'
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools xvfb
+      - run: npm ci
+      - name: Build Linux x64
+        run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
+      - name: Smoke test packaged Linux app
         shell: bash
         env:
           ELECTRON_ENABLE_LOGGING: "1"
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           APP="dist/linux-unpacked/vibez"
+          SANDBOX="dist/linux-unpacked/chrome-sandbox"
           test -x "$APP"
+          test -f "$SANDBOX"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
           EXPECTED="$(node -p "require('./package.json').version")"
-
-          set +e
           ACTUAL="$(xvfb-run -a "$APP" --version 2>/tmp/vibez-version.log | tail -n 1)"
-          version_code=$?
-          set -e
-          if [ "$version_code" -ne 0 ]; then
-            cat /tmp/vibez-version.log
-            echo "VibeZ --version failed during release smoke test (code $version_code)." >&2
-            exit 1
-          fi
           test "$ACTUAL" = "$EXPECTED"
-
           set +e
           xvfb-run -a timeout 12s "$APP" --hidden > /tmp/vibez-smoke.log 2>&1
           code=$?
           set -e
-          if [ "$code" -ne 124 ]; then
-            cat /tmp/vibez-smoke.log
-            echo "VibeZ exited unexpectedly during release smoke test (code $code)." >&2
-            exit 1
-          fi
+          test "$code" -eq 124
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-x64
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.pacman
+            dist/*.pkg.tar.zst
+            dist/latest*.yml
+            dist/*.blockmap
+          if-no-files-found: error
 
-      - name: Build ARM64 Linux packages
-        if: steps.release.outputs.exists == 'false'
+  linux-arm64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+      - run: npm ci
+      - name: Build Linux ARM64
         run: npx electron-builder --linux AppImage deb rpm pacman --arm64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-arm64
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.pacman
+            dist/*.pkg.tar.zst
+            dist/latest*.yml
+            dist/*.blockmap
+          if-no-files-found: error
 
-      - name: Build x64 Flatpak bundle
-        if: steps.release.outputs.exists == 'false'
+  flatpak-x64:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Flatpak build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+      - run: npm ci
+      - run: npm install --no-save @malept/flatpak-bundler@0.4.0
+      - name: Build Flatpak x64
         run: npx electron-builder --linux flatpak --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-flatpak-x64
+          path: dist/*.flatpak
+          if-no-files-found: error
 
-      - name: Generate SHA-256 checksums
-        if: steps.release.outputs.exists == 'false'
-        shell: bash
-        run: |
-          cd dist
-          : > SHA256SUMS
-          for file in *.AppImage *.deb *.rpm *.pacman *.pkg.tar.zst *.flatpak; do
-            [ -f "$file" ] || continue
-            sha256sum "$file" >> SHA256SUMS
-          done
-          test -s SHA256SUMS
-          cat SHA256SUMS
-
-      - name: Create GitHub Release and upload assets
-        if: steps.release.outputs.exists == 'false'
-        shell: bash
+  windows-x64:
+    needs: test
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build unsigned Windows x64 installer
+        shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --win nsis --x64 --publish never
+      - name: Smoke test Windows x64 package
+        shell: pwsh
         run: |
-          mapfile -t assets < <(find dist -maxdepth 1 -type f \( \
+          $installer = Get-ChildItem dist -File -Filter '*Windows-x64.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'Windows x64 installer missing.' }
+          $app = 'dist\win-unpacked\vibez.exe'
+          if (-not (Test-Path $app)) { throw 'Windows x64 packaged executable missing.' }
+          $expected = (node -p "require('./package.json').version").Trim()
+          $actual = (& $app --version | Select-Object -Last 1).Trim()
+          if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x64
+          path: |
+            dist/*Windows-x64.exe
+            dist/latest*.yml
+            dist/*.blockmap
+          if-no-files-found: error
+
+  windows-arm64:
+    needs: test
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build unsigned Windows ARM64 installer
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --win nsis --arm64 --publish never
+      - name: Smoke test Windows ARM64 package
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist -File -Filter '*Windows-arm64.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'Windows ARM64 installer missing.' }
+          $app = 'dist\win-arm64-unpacked\vibez.exe'
+          if (-not (Test-Path $app)) { $app = 'dist\win-unpacked\vibez.exe' }
+          if (-not (Test-Path $app)) { throw 'Windows ARM64 packaged executable missing.' }
+          $expected = (node -p "require('./package.json').version").Trim()
+          $actual = (& $app --version | Select-Object -Last 1).Trim()
+          if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-arm64
+          path: |
+            dist/*Windows-arm64.exe
+            dist/latest*.yml
+            dist/*.blockmap
+          if-no-files-found: error
+
+  macos-intel:
+    needs: test
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build unsigned macOS Intel packages
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac dmg zip --x64 --publish never
+      - name: Smoke test macOS Intel package
+        shell: bash
+        run: |
+          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-x64.dmg' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-x64.zip' -print -quit)"
+          APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"
+          test -n "$APP"
+          test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-intel
+          path: |
+            dist/*macOS-x64.dmg
+            dist/*macOS-x64.zip
+            dist/*.blockmap
+          if-no-files-found: error
+
+  macos-arm64:
+    needs: test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build unsigned macOS Apple Silicon packages
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac dmg zip --arm64 --publish never
+      - name: Smoke test macOS Apple Silicon package
+        shell: bash
+        run: |
+          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
+          APP="$(find dist/mac-arm64 -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"
+          if [ -z "$APP" ]; then APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"; fi
+          test -n "$APP"
+          test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-arm64
+          path: |
+            dist/*macOS-arm64.dmg
+            dist/*macOS-arm64.zip
+            dist/*.blockmap
+          if-no-files-found: error
+
+  publish:
+    needs: [linux-x64, linux-arm64, flatpak-x64, windows-x64, windows-arm64, macos-intel, macos-arm64]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v5
+        with:
+          path: downloads
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { capture=1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then printf 'See CHANGELOG.md for details.\n' > release-notes.md; fi
+      - name: Collect release assets and checksums
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          find downloads -type f \( \
             -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o \
             -name '*.pacman' -o -name '*.pkg.tar.zst' -o -name '*.flatpak' -o \
-            -name 'latest*.yml' -o -name '*.blockmap' -o -name 'SHA256SUMS' \
-          \) -print | sort)
-          test "${#assets[@]}" -gt 0
-          gh release create "v${VERSION}" "${assets[@]}" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "${VERSION}" \
-            --notes-file release-notes.md
+            -name '*Windows-*.exe' -o -name '*macOS-*.dmg' -o -name '*macOS-*.zip' -o \
+            -name '*.blockmap' \
+          \) -print0 | while IFS= read -r -d '' file; do cp "$file" "release-assets/$(basename "$file")"; done
 
-      - name: Update existing GitHub Release notes
-        if: steps.release.outputs.exists == 'true'
+          test -n "$(find downloads/release-linux-x64 -type f -name 'latest-linux.yml' -print -quit)" && cp "$(find downloads/release-linux-x64 -type f -name 'latest-linux.yml' -print -quit)" release-assets/latest-linux.yml || true
+          ARM_LINUX_META="$(find downloads/release-linux-arm64 -type f -name 'latest*.yml' -print -quit || true)"
+          [ -z "$ARM_LINUX_META" ] || cp "$ARM_LINUX_META" release-assets/latest-linux-arm64.yml
+          WIN_META="$(find downloads/release-windows-x64 -type f -name 'latest.yml' -print -quit || true)"
+          [ -z "$WIN_META" ] || cp "$WIN_META" release-assets/latest.yml
+          WIN_ARM_META="$(find downloads/release-windows-arm64 -type f -name 'latest*.yml' -print -quit || true)"
+          [ -z "$WIN_ARM_META" ] || cp "$WIN_ARM_META" release-assets/latest-arm64.yml
+
+          cd release-assets
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          test -s SHA256SUMS
+          cat SHA256SUMS
+      - name: Publish GitHub Release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md
-
+        run: |
+          mapfile -t assets < <(find release-assets -maxdepth 1 -type f -print | sort)
+          test "${#assets[@]}" -gt 0
+          if gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "v${VERSION}" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md
+          else
+            gh release create "v${VERSION}" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --title "${VERSION}" --notes-file release-notes.md
+          fi
       - name: Verify published release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY"
+        run: |
+          gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY"
+          test "$(gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft)" = "false"
