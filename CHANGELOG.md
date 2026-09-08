@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-08
+
+### Added
+- Central VibeZ internationalization layer covering all VibeZ-owned menus, dialogs, Settings and screenshot interfaces.
+- 34 built-in interface languages with automatic Linux/OS locale detection and English fallback.
+- Simplified and Traditional Chinese support.
+- Right-to-left layout support for Arabic, Hebrew, Persian and Urdu.
+- Regression tests that require every advertised language to contain every VibeZ translation key.
+
+### Changed
+- **System** language now follows the Linux/Electron OS locale instead of the language reported by the Mistral web page.
+- Manual VibeZ language selection applies to VibeZ-owned UI without forcing the embedded Mistral Vibe website to that language.
+- Native Screenshot button localizes its label, adapts its width for longer translations and repositions itself relative to the account action.
+- Screenshot selection and error dialogs now use the same central VibeZ language source.
+
+### Fixed
+- Fixed the Screenshot button overlapping **Aanmelden / Sign up / Register** on narrower windows.
+- Screenshot button now anchors with a fixed gap to the account action and uses the BrowserWindow content bounds for more reliable Linux window-manager positioning.
+
 ## [1.3.0] - 2026-09-08
 
 ### Added
@@ -82,7 +101,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/harald666/vibez/releases/tag/v1.3.1
 [1.3.0]: https://github.com/harald666/vibez/releases/tag/v1.3.0
 [1.2.0]: https://github.com/harald666/vibez/releases/tag/v1.2.0
 [1.1.0]: https://github.com/harald666/vibez/releases/tag/v1.1.0

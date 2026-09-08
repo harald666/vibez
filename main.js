@@ -48,10 +48,6 @@ if (settings.displayBackend === 'wayland') {
   app.commandLine.appendSwitch('ozone-platform', 'x11');
 }
 
-if (settings.language !== 'system') {
-  app.commandLine.appendSwitch('lang', settings.language);
-}
-
 let mainWindow = null;
 let settingsWindow = null;
 let screenshotButtonWindow = null;
@@ -114,7 +110,7 @@ function ensureMainVisible() {
 
 async function positionScreenshotButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
-  const bounds = mainWindow.getBounds();
+  const bounds = mainWindow.getContentBounds();
   const buttonBounds = screenshotButtonWindow.getBounds();
   const width = Math.max(146, buttonBounds.width || 146);
   const height = 48;

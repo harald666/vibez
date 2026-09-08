@@ -11,6 +11,7 @@ A Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/) with native 
 - Built-in Screenshot button with multi-monitor support.
 - System tray with Open, Screenshot, Settings, Check for updates, About and Quit actions.
 - Settings for screenshot shortcuts, startup, tray behavior, hardware acceleration, Wayland/X11, zoom, language and updates.
+- VibeZ-owned interface follows the Linux/OS language automatically, with 34 built-in languages and RTL support.
 - Optional start at login, minimize to tray and close to tray.
 - Safer update flow with **Restart & update** or **Later** instead of an unexpected restart.
 - External links open in your normal browser and web permissions are restricted to trusted Mistral pages.
@@ -38,26 +39,26 @@ To uninstall a package installed this way:
 curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash -s -- --uninstall
 ```
 
-Latest release: **VibeZ 1.3.0**
+Latest release: **VibeZ 1.3.1**
 
 ### Direct downloads — x86_64 / AMD64
 
 | Distribution | Download |
 | --- | --- |
-| Debian / Ubuntu / Linux Mint | [VibeZ_1.3.0_amd64.deb](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ_1.3.0_amd64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.0.x86_64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0.x86_64.rpm) |
-| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.3.0.pacman](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0.pacman) |
-| Portable AppImage | [VibeZ-1.3.0.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0.AppImage) |
-| Flatpak bundle | [VibeZ-1.3.0-x86_64.flatpak](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0-x86_64.flatpak) |
+| Debian / Ubuntu / Linux Mint | [VibeZ_1.3.1_amd64.deb](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ_1.3.1_amd64.deb) |
+| Fedora / RPM-based | [VibeZ-1.3.1.x86_64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.x86_64.rpm) |
+| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.3.1.pacman](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.pacman) |
+| Portable AppImage | [VibeZ-1.3.1.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.AppImage) |
+| Flatpak bundle | [VibeZ-1.3.1-x86_64.flatpak](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-x86_64.flatpak) |
 
 ### Direct downloads — ARM64 / AArch64
 
 | Distribution | Download |
 | --- | --- |
-| Debian / Ubuntu | [VibeZ_1.3.0_arm64.deb](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ_1.3.0_arm64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.0.aarch64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0.aarch64.rpm) |
-| Arch-based ARM64 | [VibeZ-1.3.0-aarch64.pacman](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0-aarch64.pacman) |
-| Portable AppImage | [VibeZ-1.3.0-arm64.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.0/VibeZ-1.3.0-arm64.AppImage) |
+| Debian / Ubuntu | [VibeZ_1.3.1_arm64.deb](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ_1.3.1_arm64.deb) |
+| Fedora / RPM-based | [VibeZ-1.3.1.aarch64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.aarch64.rpm) |
+| Arch-based ARM64 | [VibeZ-1.3.1-aarch64.pacman](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-aarch64.pacman) |
+| Portable AppImage | [VibeZ-1.3.1-arm64.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-arm64.AppImage) |
 
 All releases and checksums are available on the [GitHub Releases page](https://github.com/harald666/vibez/releases).
 
@@ -66,33 +67,39 @@ All releases and checksums are available on the [GitHub Releases page](https://g
 Debian, Ubuntu and Linux Mint:
 
 ```bash
-sudo apt install ./VibeZ_1.3.0_amd64.deb
+sudo apt install ./VibeZ_1.3.1_amd64.deb
 ```
 
 Fedora:
 
 ```bash
-sudo dnf install ./VibeZ-1.3.0.x86_64.rpm
+sudo dnf install ./VibeZ-1.3.1.x86_64.rpm
 ```
 
 Arch Linux, Manjaro and EndeavourOS:
 
 ```bash
-sudo pacman -U ./VibeZ-1.3.0.pacman
+sudo pacman -U ./VibeZ-1.3.1.pacman
 ```
 
 AppImage:
 
 ```bash
-chmod +x VibeZ-1.3.0.AppImage
-./VibeZ-1.3.0.AppImage
+chmod +x VibeZ-1.3.1.AppImage
+./VibeZ-1.3.1.AppImage
 ```
 
 Flatpak bundle:
 
 ```bash
-flatpak install --user ./VibeZ-1.3.0-x86_64.flatpak
+flatpak install --user ./VibeZ-1.3.1-x86_64.flatpak
 ```
+
+## Languages
+
+By default, **System** follows the language reported by Linux. VibeZ has complete built-in translations for 34 major languages, including English, Dutch, German, French, Spanish, Italian, Portuguese, Polish, Russian, Ukrainian, Turkish, Simplified and Traditional Chinese, Japanese, Korean, Hindi, Bengali, Punjabi, Marathi, Telugu, Tamil, Gujarati, Indonesian, Vietnamese, Thai, Filipino, Javanese, Swahili, Hausa, Amharic, Arabic, Hebrew, Persian and Urdu.
+
+Arabic, Hebrew, Persian and Urdu use right-to-left layout in VibeZ-owned interfaces. Unsupported system locales fall back to English. Choosing a VibeZ language manually changes VibeZ's own menus, dialogs, screenshot tools and Settings; it does not force the embedded Mistral Vibe website into that language.
 
 ## Screenshot workflow
 
