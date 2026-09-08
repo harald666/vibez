@@ -37,3 +37,5 @@ jobs:
           git add -A
           git commit -m 'Fix Screenshot account-button overlap and layering'
           git push origin HEAD:v1.3.2-dev
+
+# Retry after separating CI workflow changes from the hotfix commit.
