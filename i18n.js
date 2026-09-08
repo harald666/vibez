@@ -2,6 +2,8 @@ const west = require('./locales/west');
 const asia = require('./locales/asia');
 const east = require('./locales/east');
 const rtl = require('./locales/rtl');
+const southasia = require('./locales/southasia');
+const globalLanguages = require('./locales/global');
 
 const GROUP_KEYS = Object.freeze({
   menu: ['paste','copy','cut','selectAll','searchGoogle','searchDuck','open','screenshot','settings','updates','about','quit'],
@@ -10,7 +12,7 @@ const GROUP_KEYS = Object.freeze({
   settings: ['settingsTitle','desktopIntegration','globalShot','shotShortcut','showShot','startLogin','minTray','closeTray','display','hardware','backend','zoom','language','updatesBrowser','autoUpdates','installOnQuit','externalLinks','browserData','resetData','save','automatic','enabled','disabled','system','saving','saved','restartNeeded','shortcutBusy','checking','updateStarted','clearConfirm','clearing','cleared','notCleared'],
 });
 
-const RAW = Object.freeze({ ...west, ...asia, ...east, ...rtl });
+const RAW = Object.freeze({ ...west, ...asia, ...east, ...rtl, ...southasia, ...globalLanguages });
 const RTL_LANGUAGES = new Set(['ar','he','fa','ur']);
 
 const LANGUAGE_OPTIONS = Object.freeze([
@@ -22,20 +24,30 @@ const LANGUAGE_OPTIONS = Object.freeze([
   { code: 'es', name: 'Español' },
   { code: 'it', name: 'Italiano' },
   { code: 'pt', name: 'Português' },
+  { code: 'pl', name: 'Polski' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'uk', name: 'Українська' },
+  { code: 'tr', name: 'Türkçe' },
   { code: 'zh-CN', name: '简体中文' },
   { code: 'zh-TW', name: '繁體中文' },
-  { code: 'ar', name: 'العربية' },
-  { code: 'hi', name: 'हिन्दी' },
   { code: 'ja', name: '日本語' },
   { code: 'ko', name: '한국어' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'tr', name: 'Türkçe' },
-  { code: 'pl', name: 'Polski' },
-  { code: 'uk', name: 'Українська' },
+  { code: 'hi', name: 'हिन्दी' },
+  { code: 'bn', name: 'বাংলা' },
+  { code: 'pa', name: 'ਪੰਜਾਬੀ' },
+  { code: 'mr', name: 'मराठी' },
+  { code: 'te', name: 'తెలుగు' },
+  { code: 'ta', name: 'தமிழ்' },
+  { code: 'gu', name: 'ગુજરાતી' },
   { code: 'id', name: 'Bahasa Indonesia' },
   { code: 'vi', name: 'Tiếng Việt' },
   { code: 'th', name: 'ไทย' },
-  { code: 'bn', name: 'বাংলা' },
+  { code: 'fil', name: 'Filipino' },
+  { code: 'jv', name: 'Basa Jawa' },
+  { code: 'sw', name: 'Kiswahili' },
+  { code: 'ha', name: 'Hausa' },
+  { code: 'am', name: 'አማርኛ' },
+  { code: 'ar', name: 'العربية' },
   { code: 'he', name: 'עברית' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ur', name: 'اردو' },
