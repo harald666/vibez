@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 const { setupScreenshot } = require('./screenshot');
 const { createSettingsStore } = require('./settings-store');
+const { resolveLanguage, t, uiBundle } = require('./i18n');
 
 const REPO_URL = 'https://github.com/harald666/vibez';
 const RELEASES_URL = `${REPO_URL}/releases/latest`;
@@ -56,29 +57,24 @@ let settingsWindow = null;
 let screenshotButtonWindow = null;
 let screenshotButtonNativeReady = false;
 let tray = null;
-let browserLanguage = 'en';
 let isQuitting = false;
 let manualUpdateCheck = false;
 let updaterHandlersInstalled = false;
 let initialActionHandled = false;
 
-const uiTranslations = {
-  nl: { paste: 'Plakken', copy: 'Kopiëren', cut: 'Knippen', selectAll: 'Alles selecteren', google: 'Zoeken met Google', duckDuckGo: 'Zoeken met DuckDuckGo', open: 'VibeZ openen', screenshot: 'Screenshot', settings: 'Instellingen', updates: 'Controleren op updates', about: 'Over VibeZ', quit: 'Afsluiten' },
-  de: { paste: 'Einfügen', copy: 'Kopieren', cut: 'Ausschneiden', selectAll: 'Alles auswählen', google: 'Mit Google suchen', duckDuckGo: 'Mit DuckDuckGo suchen', open: 'VibeZ öffnen', screenshot: 'Screenshot', settings: 'Einstellungen', updates: 'Nach Updates suchen', about: 'Über VibeZ', quit: 'Beenden' },
-  fr: { paste: 'Coller', copy: 'Copier', cut: 'Couper', selectAll: 'Tout sélectionner', google: 'Rechercher avec Google', duckDuckGo: 'Rechercher avec DuckDuckGo', open: 'Ouvrir VibeZ', screenshot: 'Capture', settings: 'Paramètres', updates: 'Rechercher des mises à jour', about: 'À propos de VibeZ', quit: 'Quitter' },
-  es: { paste: 'Pegar', copy: 'Copiar', cut: 'Cortar', selectAll: 'Seleccionar todo', google: 'Buscar con Google', duckDuckGo: 'Buscar con DuckDuckGo', open: 'Abrir VibeZ', screenshot: 'Captura', settings: 'Ajustes', updates: 'Buscar actualizaciones', about: 'Acerca de VibeZ', quit: 'Salir' },
-  it: { paste: 'Incolla', copy: 'Copia', cut: 'Taglia', selectAll: 'Seleziona tutto', google: 'Cerca con Google', duckDuckGo: 'Cerca con DuckDuckGo', open: 'Apri VibeZ', screenshot: 'Schermata', settings: 'Impostazioni', updates: 'Controlla aggiornamenti', about: 'Informazioni su VibeZ', quit: 'Esci' },
-  pt: { paste: 'Colar', copy: 'Copiar', cut: 'Cortar', selectAll: 'Selecionar tudo', google: 'Pesquisar com o Google', duckDuckGo: 'Pesquisar com DuckDuckGo', open: 'Abrir VibeZ', screenshot: 'Captura', settings: 'Definições', updates: 'Procurar atualizações', about: 'Sobre o VibeZ', quit: 'Sair' },
-  en: { paste: 'Paste', copy: 'Copy', cut: 'Cut', selectAll: 'Select All', google: 'Search with Google', duckDuckGo: 'Search with DuckDuckGo', open: 'Open VibeZ', screenshot: 'Screenshot', settings: 'Settings', updates: 'Check for updates', about: 'About VibeZ', quit: 'Quit' },
-};
-
 function selectedLanguage() {
-  if (settings.language !== 'system') return settings.language;
-  return String(browserLanguage || app.getLocale?.() || 'en').toLowerCase().split('-')[0];
+  const osLocale = app.isReady()
+    ? app.getLocale()
+    : (process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || 'en');
+  return resolveLanguage(settings.language, osLocale);
+}
+
+function currentUiBundle() {
+  return uiBundle(selectedLanguage());
 }
 
 function uiText() {
-  return uiTranslations[selectedLanguage()] || uiTranslations.en;
+  return currentUiBundle().strings;
 }
 
 function windowTitle() {
@@ -119,7 +115,8 @@ function ensureMainVisible() {
 async function positionScreenshotButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
   const bounds = mainWindow.getBounds();
-  const width = 146;
+  const buttonBounds = screenshotButtonWindow.getBounds();
+  const width = Math.max(146, buttonBounds.width || 146);
   const height = 48;
   const gap = 10;
   let x = Math.round(bounds.x + bounds.width - 330);
@@ -202,6 +199,23 @@ async function suppressInjectedScreenshotButton() {
   } catch (_) {}
 }
 
+async function syncNativeScreenshotButtonText() {
+  if (!screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
+  const ui = currentUiBundle();
+  const shortcut = String(settings.screenshotShortcut || '').replace('CommandOrControl', 'Ctrl');
+  try {
+    const desiredWidth = await screenshotButtonWindow.webContents.executeJavaScript(`
+      window.__vibezSetUi?.(${JSON.stringify({ language: ui.language, dir: ui.dir, label: ui.strings.screenshot, shortcut })}) || 146
+    `);
+    const bounds = screenshotButtonWindow.getBounds();
+    const width = Math.max(146, Math.min(228, Number(desiredWidth) || 146));
+    if (bounds.width !== width) screenshotButtonWindow.setBounds({ ...bounds, width }, false);
+    await positionScreenshotButton();
+  } catch (error) {
+    console.error('Could not localize Screenshot button:', error);
+  }
+}
+
 async function triggerScreenshot() {
   if (!mainWindow || mainWindow.isDestroyed()) return false;
   ensureMainVisible();
@@ -225,10 +239,11 @@ async function triggerScreenshot() {
   } catch (error) {
     console.error('Could not start screenshot:', error);
     refreshScreenshotButtonVisibility();
+    const text = uiText();
     await showMessageBox({
       type: 'error',
-      title: 'VibeZ Screenshot',
-      message: 'Could not start the screenshot tool.',
+      title: `VibeZ · ${text.screenshot}`,
+      message: text.shotStartError,
       detail: error.message,
     });
     return false;
@@ -261,8 +276,9 @@ function createScreenshotButtonWindow() {
   });
 
   screenshotButtonWindow.setMenuBarVisibility(false);
-  screenshotButtonWindow.loadFile(path.join(__dirname, 'screenshot-button.html')).then(() => {
+  screenshotButtonWindow.loadFile(path.join(__dirname, 'screenshot-button.html')).then(async () => {
     screenshotButtonNativeReady = true;
+    await syncNativeScreenshotButtonText();
     suppressInjectedScreenshotButton();
     refreshScreenshotButtonVisibility();
   }).catch((error) => {
@@ -299,8 +315,8 @@ function setupContextMenu() {
     if (selection) {
       if (template.length) template.push({ type: 'separator' });
       template.push(
-        { label: text.google, click: () => shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(selection)}`) },
-        { label: text.duckDuckGo, click: () => shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(selection)}`) },
+        { label: text.searchGoogle, click: () => shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(selection)}`) },
+        { label: text.searchDuck, click: () => shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(selection)}`) },
       );
     }
 
@@ -353,13 +369,9 @@ function setupNavigationSecurity(win) {
 
 function updateBrowserLanguage(win) {
   if (!win || win.isDestroyed()) return;
-  win.webContents.executeJavaScript('navigator.language || document.documentElement.lang || "en"')
-    .then((language) => {
-      browserLanguage = language || 'en';
-      rebuildTray();
-      buildApplicationMenu();
-    })
-    .catch(() => {});
+  rebuildTray();
+  buildApplicationMenu();
+  syncNativeScreenshotButtonText();
 }
 
 function applyZoom() {
@@ -398,7 +410,7 @@ function syncAutostart(enabled) {
       '[Desktop Entry]',
       'Type=Application',
       'Name=VibeZ',
-      'Comment=Mistral Vibe desktop client',
+      `Comment=${uiText().desktopClient}`,
       `Exec=${autostartCommand()}`,
       'Terminal=false',
       'X-GNOME-Autostart-enabled=true',
@@ -439,7 +451,7 @@ function createMainWindow() {
     if (input.control && input.shift && String(input.key || '').toLowerCase() === 's') screenshotButtonWindow?.hide();
   });
 
-  setupScreenshot(mainWindow);
+  setupScreenshot(mainWindow, selectedLanguage);
   setupContextMenu();
   setupNavigationSecurity(mainWindow);
   createScreenshotButtonWindow();
@@ -506,8 +518,8 @@ function buildApplicationMenu() {
         { label: text.quit, accelerator: 'CommandOrControl+Q', click: quitApp },
       ],
     },
-    { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
-    { label: 'View', submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -581,12 +593,13 @@ function systemInfoText() {
 }
 
 async function showAbout() {
+  const text = uiText();
   const result = await showMessageBox({
     type: 'info',
-    title: `About ${windowTitle()}`,
+    title: `${text.about} · ${windowTitle()}`,
     message: windowTitle(),
-    detail: `Desktop client for Mistral Vibe\n\n${systemInfoText()}`,
-    buttons: ['Copy system information', 'GitHub', 'Report a problem', 'Close'],
+    detail: `${text.desktopClient}\n\n${systemInfoText()}`,
+    buttons: [text.copySystem, 'GitHub', text.reportProblem, text.close],
     defaultId: 3,
     cancelId: 3,
   });
@@ -608,7 +621,7 @@ function openSettings() {
     minWidth: 700,
     minHeight: 560,
     parent: mainWindow || undefined,
-    title: 'VibeZ Settings',
+    title: uiText().settingsTitle,
     autoHideMenuBar: true,
     backgroundColor: '#111216',
     icon: path.join(__dirname, 'icon.png'),
@@ -635,7 +648,7 @@ function installIpcHandlers() {
 
   ipcMain.handle('vibez:settings:get', (event) => {
     if (!validSettingsSender(event)) throw new Error('Unauthorized settings request.');
-    return settings;
+    return { settings, ui: currentUiBundle() };
   });
 
   ipcMain.handle('vibez:settings:save', async (event, patch) => {
@@ -651,7 +664,8 @@ function installIpcHandlers() {
     suppressInjectedScreenshotButton();
     rebuildTray();
     buildApplicationMenu();
-    return { settings, restartRequired, shortcutRegistered, autostartApplied };
+    await syncNativeScreenshotButtonText();
+    return { settings, ui: currentUiBundle(), restartRequired, shortcutRegistered, autostartApplied };
   });
 
   ipcMain.handle('vibez:updates:check', (event) => {
@@ -695,22 +709,24 @@ function installUpdaterHandlers() {
   autoUpdater.on('update-not-available', () => {
     if (!manualUpdateCheck) return;
     manualUpdateCheck = false;
-    showMessageBox({ type: 'info', title: 'VibeZ Updates', message: 'You already have the latest VibeZ version.' });
+    const text = uiText();
+    showMessageBox({ type: 'info', title: `VibeZ · ${text.updates}`, message: text.latest });
   });
   autoUpdater.on('error', (error) => {
     console.error('VibeZ updater error:', error);
     if (!manualUpdateCheck) return;
     manualUpdateCheck = false;
-    showMessageBox({ type: 'error', title: 'VibeZ Updates', message: 'Could not check for updates.', detail: error.message });
+    const text = uiText();
+    showMessageBox({ type: 'error', title: `VibeZ · ${text.updates}`, message: text.updateFailed, detail: error.message });
   });
   autoUpdater.on('update-downloaded', async (info) => {
     manualUpdateCheck = false;
+    const text = uiText();
     const result = await showMessageBox({
       type: 'info',
-      title: 'VibeZ update ready',
-      message: `VibeZ ${info.version} is ready to install.`,
-      detail: settings.installUpdatesOnQuit ? 'Restart now, or choose Later to install when VibeZ closes.' : 'Restart now to install the update, or choose Later.',
-      buttons: ['Restart & update', 'Later'],
+      title: text.updateReady,
+      message: t(selectedLanguage(), 'readyInstall', { version: info.version }),
+      buttons: [text.restartUpdate, text.later],
       defaultId: 0,
       cancelId: 1,
     });
@@ -723,18 +739,17 @@ function installUpdaterHandlers() {
 
 function checkForUpdates(manual = false) {
   manualUpdateCheck = Boolean(manual);
+  const text = uiText();
   if (!app.isPackaged) {
-    if (manual) showMessageBox({ type: 'info', title: 'VibeZ Updates', message: 'Update checks are available in installed VibeZ builds.' });
+    if (manual) showMessageBox({ type: 'info', title: `VibeZ · ${text.updates}`, message: text.installedOnly });
     return;
   }
   if (process.env.FLATPAK_ID) {
-    if (manual) showMessageBox({ type: 'info', title: 'VibeZ Updates', message: 'This is the Flatpak build.', detail: 'Open the VibeZ Releases page to install a newer Flatpak bundle.', buttons: ['Open Releases', 'Close'], defaultId: 0 }).then((result) => { if (result.response === 0) shell.openExternal(RELEASES_URL); });
+    if (manual) showMessageBox({ type: 'info', title: `VibeZ · ${text.updates}`, message: text.flatpakBuild, buttons: [text.openReleases, text.close], defaultId: 0 }).then((result) => { if (result.response === 0) shell.openExternal(RELEASES_URL); });
     return;
   }
   installUpdaterHandlers();
-  autoUpdater.checkForUpdates().catch((error) => {
-    console.error('Update check failed:', error);
-  });
+  autoUpdater.checkForUpdates().catch((error) => console.error('Update check failed:', error));
 }
 
 function configureSessionSecurity() {

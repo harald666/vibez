@@ -1,5 +1,6 @@
 const { BrowserWindow, clipboard, desktopCapturer, dialog, ipcMain, screen } = require('electron');
 const path = require('path');
+const { t, uiBundle } = require('./i18n');
 
 let mainWindow = null;
 let overlayWindows = [];
@@ -9,28 +10,22 @@ let captureInProgress = false;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const screenshotTranslations = {
-  nl: { label: 'Screenshot', noSource: 'Geen schermbron beschikbaar voor dit scherm.', noDisplays: 'Geen beeldschermen gevonden.', failedTitle: 'Schermafdruk mislukt', failedMessage: 'VibeZ kon geen schermafdruk maken.', selectionTitle: 'Schermafdruk selecteren', selectionHint: 'Sleep over het gebied dat je wilt delen · Esc = annuleren' },
-  de: { label: 'Screenshot', noSource: 'Für diesen Bildschirm ist keine Bildschirmquelle verfügbar.', noDisplays: 'Keine Bildschirme gefunden.', failedTitle: 'Screenshot fehlgeschlagen', failedMessage: 'VibeZ konnte keinen Screenshot erstellen.', selectionTitle: 'Screenshot auswählen', selectionHint: 'Ziehe über den Bereich, den du teilen möchtest · Esc = Abbrechen' },
-  fr: { label: 'Capture', noSource: 'Aucune source d’écran n’est disponible pour cet écran.', noDisplays: 'Aucun écran trouvé.', failedTitle: 'Échec de la capture', failedMessage: 'VibeZ n’a pas pu créer de capture d’écran.', selectionTitle: 'Sélectionner une capture', selectionHint: 'Faites glisser sur la zone à partager · Échap = annuler' },
-  es: { label: 'Captura', noSource: 'No hay una fuente de pantalla disponible para esta pantalla.', noDisplays: 'No se encontraron pantallas.', failedTitle: 'Error de captura', failedMessage: 'VibeZ no pudo crear una captura de pantalla.', selectionTitle: 'Seleccionar captura', selectionHint: 'Arrastra sobre el área que quieres compartir · Esc = cancelar' },
-  it: { label: 'Schermata', noSource: 'Nessuna sorgente dello schermo disponibile per questo display.', noDisplays: 'Nessuno schermo trovato.', failedTitle: 'Acquisizione non riuscita', failedMessage: 'VibeZ non è riuscito a creare una schermata.', selectionTitle: 'Seleziona schermata', selectionHint: 'Trascina sull’area che vuoi condividere · Esc = annulla' },
-  pt: { label: 'Captura', noSource: 'Não existe uma fonte de ecrã disponível para este monitor.', noDisplays: 'Não foram encontrados ecrãs.', failedTitle: 'Falha na captura', failedMessage: 'O VibeZ não conseguiu criar uma captura de ecrã.', selectionTitle: 'Selecionar captura', selectionHint: 'Arraste sobre a área que pretende partilhar · Esc = cancelar' },
-  en: { label: 'Screenshot', noSource: 'No screen source is available for this display.', noDisplays: 'No displays found.', failedTitle: 'Screenshot failed', failedMessage: 'VibeZ could not create a screenshot.', selectionTitle: 'Select screenshot', selectionHint: 'Drag over the area you want to share · Esc = cancel' }
-};
+let languageGetter = () => 'en';
 
-function screenshotText(language) {
-  const languageCode = String(language || 'en').toLowerCase().split('-')[0];
-  return screenshotTranslations[languageCode] || screenshotTranslations.en;
+function currentLanguage() {
+  try { return languageGetter() || 'en'; } catch (_) { return 'en'; }
 }
 
-async function getPageLanguage() {
-  if (!mainWindow || mainWindow.isDestroyed()) return 'en';
-  try {
-    return await mainWindow.webContents.executeJavaScript('navigator.language || document.documentElement.lang || "en"');
-  } catch (_) {
-    return 'en';
-  }
+function screenshotText(language) {
+  return {
+    label: t(language, 'screenshot'),
+    noSource: t(language, 'noSource'),
+    noDisplays: t(language, 'noDisplays'),
+    failedTitle: t(language, 'shotFailed'),
+    failedMessage: t(language, 'shotFailedMessage'),
+    selectionTitle: t(language, 'selectShot'),
+    selectionHint: t(language, 'selectHint'),
+  };
 }
 
 function getOrderedDisplays() {
@@ -56,9 +51,7 @@ async function installScreenshotButton() {
       (() => {
         const BUTTON_ID = 'vibez-screenshot-button';
         const GAP = 10;
-        const locale = String(navigator.language || document.documentElement.lang || 'en').toLowerCase().split('-')[0];
-        const labels = { nl: 'Screenshot', de: 'Screenshot', fr: 'Capture', es: 'Captura', it: 'Schermata', pt: 'Captura', en: 'Screenshot' };
-        const screenshotLabel = labels[locale] || labels.en;
+        const screenshotLabel = ${JSON.stringify(t(currentLanguage(), 'screenshot'))};
 
         const visible = (element) => {
           if (!element || !element.isConnected) return false;
@@ -414,8 +407,9 @@ async function createOverlay(display, image, language) {
   });
 
   await overlay.loadFile(path.join(__dirname, 'screenshot-overlay.html'));
+  const ui = uiBundle(language);
   await overlay.webContents.executeJavaScript(`
-    window.__vibezSetScreenshotLanguage?.(${JSON.stringify(language)});
+    window.__vibezSetScreenshotText?.(${JSON.stringify({ language: ui.language, dir: ui.dir, title: t(language, 'selectShot'), hint: t(language, 'selectHint') })});
     window.__vibezSetScreenshot(${JSON.stringify(image.toDataURL())});
   `);
   return overlay;
@@ -427,7 +421,7 @@ async function startScreenshot() {
   let language = 'en';
 
   try {
-    language = await getPageLanguage();
+    language = currentLanguage();
     const displays = getOrderedDisplays();
     if (!displays.length) throw new Error(screenshotText(language).noDisplays);
 
@@ -689,8 +683,9 @@ function registerIpc() {
   });
 }
 
-function setupScreenshot(win) {
+function setupScreenshot(win, getLanguage) {
   mainWindow = win;
+  if (typeof getLanguage === 'function') languageGetter = getLanguage;
   registerIpc();
 
   win.webContents.on('did-finish-load', () => {
