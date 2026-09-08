@@ -1,10 +1,8 @@
 name: Release VibeZ
 
-# Builds and publishes the current package.json version for Linux.
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -45,10 +43,7 @@ jobs:
             capture && /^## \[/ { exit }
             capture { print }
           ' CHANGELOG.md > release-notes.md
-
-          if [ ! -s release-notes.md ]; then
-            printf 'See CHANGELOG.md for details.\n' > release-notes.md
-          fi
+          if [ ! -s release-notes.md ]; then printf 'See CHANGELOG.md for details.\n' > release-notes.md; fi
 
       - name: Check whether release already exists
         id: release
@@ -68,19 +63,65 @@ jobs:
         if: steps.release.outputs.exists == 'false'
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools
+          sudo apt-get install -y rpm libarchive-tools flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
       - name: Install dependencies
         if: steps.release.outputs.exists == 'false'
-        run: npm ci
+        run: |
+          npm ci
+          npm install --no-save @malept/flatpak-bundler@0.4.0
 
-      - name: Build and publish Linux release
+      - name: Run tests
         if: steps.release.outputs.exists == 'false'
+        run: npm test
+
+      - name: Build x64 Linux packages
+        if: steps.release.outputs.exists == 'false'
+        run: npx electron-builder --linux AppImage deb rpm pacman --x64 --publish never
+
+      - name: Build ARM64 Linux packages
+        if: steps.release.outputs.exists == 'false'
+        run: npx electron-builder --linux AppImage deb rpm pacman --arm64 --publish never
+
+      - name: Build x64 Flatpak bundle
+        if: steps.release.outputs.exists == 'false'
+        run: npx electron-builder --linux flatpak --x64 --publish never
+
+      - name: Generate SHA-256 checksums
+        if: steps.release.outputs.exists == 'false'
+        shell: bash
+        run: |
+          cd dist
+          : > SHA256SUMS
+          for file in *.AppImage *.deb *.rpm *.pacman *.pkg.tar.zst *.flatpak; do
+            [ -f "$file" ] || continue
+            sha256sum "$file" >> SHA256SUMS
+          done
+          test -s SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create GitHub Release and upload assets
+        if: steps.release.outputs.exists == 'false'
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux AppImage deb rpm pacman --publish always
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mapfile -t assets < <(find dist -maxdepth 1 -type f \( \
+            -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o \
+            -name '*.pacman' -o -name '*.pkg.tar.zst' -o -name '*.flatpak' -o \
+            -name 'latest*.yml' -o -name '*.blockmap' -o -name 'SHA256SUMS' \
+          \) -print | sort)
+          test "${#assets[@]}" -gt 0
+          gh release create "v${VERSION}" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${VERSION}" \
+            --notes-file release-notes.md
 
-      - name: Update GitHub Release notes
+      - name: Update existing GitHub Release notes
+        if: steps.release.outputs.exists == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
