@@ -1,7 +1,7 @@
 {
   "name": "VibeZ",
   "version": "1.2.0",
-  "description": "A graphical client for Mistral Vibe",
+  "description": "A graphical Linux desktop client for Mistral Vibe",
   "license": "MIT",
   "homepage": "https://github.com/harald666/vibez",
   "author": {
@@ -10,7 +10,9 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "ELECTRON_DISABLE_GPU=1 LIBVA_DRIVER_NAME=i965 electron . --disable-gpu --disable-software-rasterizer --no-sandbox",
+    "start": "electron .",
+    "check": "node --check main.js && node --check screenshot.js && node --check preload.js && node --check settings-store.js && node --check settings-preload.js && node --check native-button-preload.js",
+    "test": "node --test test/*.test.js && npm run check && bash -n install.sh",
     "build": "electron-builder"
   },
   "dependencies": {
@@ -23,7 +25,14 @@
   "build": {
     "appId": "com.vibez.app",
     "productName": "VibeZ",
+    "executableName": "vibez",
     "icon": "build/icons",
+    "protocols": [
+      {
+        "name": "VibeZ",
+        "schemes": ["vibez"]
+      }
+    ],
     "publish": {
       "provider": "github",
       "owner": "harald666",
@@ -34,24 +43,27 @@
       "output": "dist"
     },
     "linux": {
-      "target": [
-        "AppImage",
-        "deb",
-        "rpm",
-        "pacman"
-      ],
-      "category": "Development"
+      "target": ["AppImage", "deb", "rpm", "pacman"],
+      "category": "Development",
+      "synopsis": "Linux desktop client for Mistral Vibe",
+      "description": "VibeZ is an independent Linux desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates."
     },
     "pacman": {
-      "depends": [
-        "gtk3",
-        "libnotify",
-        "nss",
-        "libxss",
-        "libxtst",
-        "xdg-utils",
-        "at-spi2-core",
-        "libsecret"
+      "depends": ["gtk3", "libnotify", "nss", "libxss", "libxtst", "xdg-utils", "at-spi2-core", "libsecret"]
+    },
+    "flatpak": {
+      "runtime": "org.freedesktop.Platform",
+      "runtimeVersion": "24.08",
+      "sdk": "org.freedesktop.Sdk",
+      "useWaylandFlags": true,
+      "finishArgs": [
+        "--share=network",
+        "--share=ipc",
+        "--socket=wayland",
+        "--socket=fallback-x11",
+        "--device=dri",
+        "--filesystem=home",
+        "--talk-name=org.freedesktop.portal.Desktop"
       ]
     }
   }
