@@ -12,7 +12,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check main.js && node --check screenshot.js && node --check preload.js && node --check settings-store.js && node --check settings-preload.js && node --check native-button-preload.js",
+    "check": "node --check main.js && node --check screenshot.js && node --check preload.js && node --check settings-store.js && node --check settings-preload.js && node --check native-button-preload.js && node --check i18n.js && node --check locales/*.js",
     "test": "node --test test/*.test.js && npm run check && bash -n install.sh",
     "build": "electron-builder"
   },
