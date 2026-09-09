@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths-ignore:
       - 'docs/**'
+      - 'README.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/DISCUSSION_TEMPLATE/**'
+      - '.github/FUNDING.yml'
   workflow_dispatch:
 
 permissions:
