@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a reproducible problem with VibeZ
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve VibeZ. Please use this form for reproducible bugs and errors.
+
+        For how-to questions, ideas, feedback or general support, please use GitHub Discussions instead:
+        https://github.com/harald666/vibez/discussions/categories/q-a
+
+  - type: input
+    id: version
+    attributes:
+      label: VibeZ version
+      description: You can find this in VibeZ under About.
+      placeholder: "1.4.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system version / distribution
+      placeholder: "Windows 11 24H2, macOS 15, Ubuntu 24.04, Arch Linux..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: CPU architecture
+      options:
+        - x64 / x86_64
+        - ARM64 / aarch64
+        - Unknown
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem as clearly as possible.
+      placeholder: Tell us what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps that reproduce the problem.
+      placeholder: |
+        1. Open VibeZ
+        2. Click ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: What did you expect VibeZ to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, logs or additional context
+      description: Add anything else that could help diagnose the problem. Please remove passwords, tokens and other private information.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing Issues and Discussions for the same problem.
+          required: true
+        - label: I am reporting a VibeZ problem, not a problem with the Mistral service itself.
+          required: true
