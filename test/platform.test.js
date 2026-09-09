@@ -27,12 +27,14 @@ test('start at login uses native APIs on Windows and macOS and XDG on Linux', ()
   assert.match(main, /\.config', 'autostart'/);
 });
 
-test('macOS screenshot permission and unsigned update behavior are explicit', () => {
+test('macOS keeps manual installation but can notify about new GitHub releases', () => {
   assert.match(main, /getMediaAccessStatus\('screen'\)/);
   assert.match(main, /Privacy_ScreenCapture/);
-  assert.match(main, /Unsigned macOS builds are updated manually from GitHub Releases/);
-  assert.match(settings, /autoUpdatesRow/);
-  assert.match(settings, /installOnQuitRow/);
+  assert.match(main, /async function checkMacUpdates/);
+  assert.match(main, /LATEST_RELEASE_API/);
+  assert.match(main, /void checkMacUpdates\(manual\)/);
+  assert.match(settings, /el\('autoUpdatesRow'\)\.hidden=false/);
+  assert.match(settings, /el\('installOnQuitRow'\)\.hidden=isMac/);
 });
 
 test('settings receive platform identity from the trusted main process', () => {

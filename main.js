@@ -19,11 +19,24 @@ const path = require('path');
 const { setupScreenshot } = require('./screenshot');
 const { createSettingsStore } = require('./settings-store');
 const { resolveLanguage, t, uiBundle } = require('./i18n');
+const { ACCOUNT_WORDS } = require('./ui-detection');
 
 const REPO_URL = 'https://github.com/harald666/vibez';
 const RELEASES_URL = `${REPO_URL}/releases/latest`;
 const VIBE_URL = 'https://vibe.mistral.ai/';
 const APP_PROTOCOL = 'vibez';
+const LATEST_RELEASE_API = 'https://api.github.com/repos/harald666/vibez/releases/latest';
+const SCREENSHOT_BUTTON_LAYOUT = Object.freeze({
+  minWidth: 146,
+  maxWidth: 228,
+  height: 48,
+  gap: 10,
+  fallbackRightOffset: 330,
+  fallbackTop: 5,
+  edgePadding: 8,
+  maxTopBand: 90,
+  minMainWidth: 620,
+});
 
 if (process.argv.includes('--version')) {
   console.log(require('./package.json').version);
@@ -109,15 +122,99 @@ function ensureMainVisible() {
   mainWindow.focus();
 }
 
+function isTransientWebUiError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.webContents.isDestroyed() ||
+    mainWindow.webContents.isLoadingMainFrame() ||
+    message.includes('object has been destroyed') ||
+    message.includes('execution context was destroyed') ||
+    message.includes('frame was disposed') ||
+    message.includes('navigat');
+}
+
+function warnWebUiError(context, error) {
+  if (!isTransientWebUiError(error)) console.warn(`[VibeZ] ${context}:`, error);
+}
+
+function compareVersions(left, right) {
+  const parse = (value) => String(value || '')
+    .replace(/^v/i, '')
+    .split('-')[0]
+    .split('.')
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const a = parse(left);
+  const b = parse(right);
+  const length = Math.max(a.length, b.length, 3);
+  for (let index = 0; index < length; index += 1) {
+    const av = a[index] || 0;
+    const bv = b[index] || 0;
+    if (av !== bv) return av > bv ? 1 : -1;
+  }
+  return 0;
+}
+
+async function fetchLatestRelease() {
+  const response = await fetch(LATEST_RELEASE_API, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': `VibeZ/${app.getVersion()}`,
+    },
+  });
+  if (!response.ok) throw new Error(`GitHub update check failed (HTTP ${response.status}).`);
+  const release = await response.json();
+  const version = String(release.tag_name || release.name || '').replace(/^v/i, '').trim();
+  if (!version) throw new Error('GitHub release response did not contain a version.');
+  return {
+    version,
+    url: isSafeExternalUrl(release.html_url) ? release.html_url : RELEASES_URL,
+  };
+}
+
+async function checkMacUpdates(manual = false) {
+  const text = uiText();
+  try {
+    const latest = await fetchLatestRelease();
+    if (compareVersions(latest.version, app.getVersion()) > 0) {
+      const result = await showMessageBox({
+        type: 'info',
+        title: `VibeZ · ${text.updates}`,
+        message: `${text.updateReady} — VibeZ ${latest.version}`,
+        buttons: [text.openReleases, text.later],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (result.response === 0) await shell.openExternal(latest.url);
+      return true;
+    }
+    if (manual) {
+      await showMessageBox({ type: 'info', title: `VibeZ · ${text.updates}`, message: text.latest });
+    }
+    return false;
+  } catch (error) {
+    console.error('macOS update check failed:', error);
+    if (manual) {
+      await showMessageBox({
+        type: 'error',
+        title: `VibeZ · ${text.updates}`,
+        message: text.updateFailed,
+        detail: error.message,
+      });
+    }
+    return false;
+  }
+}
+
 async function positionScreenshotButton() {
   if (!mainWindow || mainWindow.isDestroyed() || !screenshotButtonWindow || screenshotButtonWindow.isDestroyed()) return;
   const bounds = mainWindow.getContentBounds();
   const buttonBounds = screenshotButtonWindow.getBounds();
-  const width = Math.max(146, buttonBounds.width || 146);
-  const height = 48;
-  const gap = 10;
-  let x = Math.round(bounds.x + bounds.width - 330);
-  let y = Math.round(bounds.y + 5);
+  const width = Math.max(SCREENSHOT_BUTTON_LAYOUT.minWidth, buttonBounds.width || SCREENSHOT_BUTTON_LAYOUT.minWidth);
+  const height = SCREENSHOT_BUTTON_LAYOUT.height;
+  const gap = SCREENSHOT_BUTTON_LAYOUT.gap;
+  let x = Math.round(bounds.x + bounds.width - SCREENSHOT_BUTTON_LAYOUT.fallbackRightOffset);
+  let y = Math.round(bounds.y + SCREENSHOT_BUTTON_LAYOUT.fallbackTop);
 
   try {
     const anchor = await mainWindow.webContents.executeJavaScript(`
@@ -130,15 +227,7 @@ async function positionScreenshotButton() {
         };
         const textOf = (el) => [el.innerText, el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')]
           .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
-        const accountWords = [
-          'aanmelden','registreren','inloggen','sign up','register','create account','sign in','login','log in',
-          'konto erstellen','registrieren','anmelden','einloggen','s’inscrire','inscription','se connecter','connexion',
-          'registrarse','crear cuenta','iniciar sesión','entrar','registrati','crea account','accedi','registar','criar conta','iniciar sessão',
-          '注册','註冊','创建账户','建立帳戶','登录','登入','إنشاء حساب','تسجيل','تسجيل الدخول',
-          'साइन अप','साइन इन','लॉग इन','登録','ログイン','가입','로그인','регистрация','зарегистрироваться','войти','вход',
-          'kayıt ol','giriş yap','zarejestruj','zaloguj się','реєстрація','увійти','вхід','daftar','masuk','đăng ký','đăng nhập',
-          'สมัคร','เข้าสู่ระบบ','הרשמה','התחברות','היכנס','ثبت نام','ورود','رجسٹر','لاگ ان','নিবন্ধন','লগ ইন'
-        ];
+        const accountWords = ${JSON.stringify(ACCOUNT_WORDS)};
         const nodes = [...document.querySelectorAll('button,a,[role="button"]')]
           .filter(visible)
           .map((el) => ({ el, text: textOf(el), rect: el.getBoundingClientRect() }))
@@ -162,12 +251,14 @@ async function positionScreenshotButton() {
       x = Math.round(bounds.x + anchor.left - width - gap);
       y = Math.round(bounds.y + anchor.top + (anchor.height - height) / 2);
     }
-  } catch (_) {}
+  } catch (error) {
+    warnWebUiError('Could not position Screenshot button', error);
+  }
 
-  const minX = bounds.x + 8;
-  const maxX = bounds.x + bounds.width - width - 8;
+  const minX = bounds.x + SCREENSHOT_BUTTON_LAYOUT.edgePadding;
+  const maxX = bounds.x + bounds.width - width - SCREENSHOT_BUTTON_LAYOUT.edgePadding;
   const minY = bounds.y + 2;
-  const maxY = bounds.y + Math.min(90, bounds.height - height - 2);
+  const maxY = bounds.y + Math.min(SCREENSHOT_BUTTON_LAYOUT.maxTopBand, bounds.height - height - 2);
   x = Math.max(minX, Math.min(maxX, x));
   y = Math.max(minY, Math.min(maxY, y));
   screenshotButtonWindow.setBounds({ x, y, width, height }, false);
@@ -182,7 +273,7 @@ function shouldShowScreenshotButton() {
     mainWindow.isVisible() &&
     mainWindow.isFocused() &&
     !mainWindow.isMinimized() &&
-    mainWindow.getBounds().width >= 620
+    mainWindow.getBounds().width >= SCREENSHOT_BUTTON_LAYOUT.minMainWidth
   );
 }
 
@@ -201,7 +292,9 @@ async function suppressInjectedScreenshotButton() {
   if (!screenshotButtonNativeReady && settings.showScreenshotButton) return;
   try {
     await mainWindow.webContents.insertCSS('#vibez-screenshot-button{display:none !important;visibility:hidden !important;pointer-events:none !important;}');
-  } catch (_) {}
+  } catch (error) {
+    warnWebUiError('Could not suppress injected Screenshot button', error);
+  }
 }
 
 async function syncNativeScreenshotButtonText() {
@@ -212,10 +305,10 @@ async function syncNativeScreenshotButtonText() {
     .replace('Super', process.platform === 'darwin' ? 'Cmd' : 'Super');
   try {
     const desiredWidth = await screenshotButtonWindow.webContents.executeJavaScript(`
-      window.__vibezSetUi?.(${JSON.stringify({ language: ui.language, dir: ui.dir, label: ui.strings.screenshot, shortcut })}) || 146
+      window.__vibezSetUi?.(${JSON.stringify({ language: ui.language, dir: ui.dir, label: ui.strings.screenshot, shortcut })}) || ${SCREENSHOT_BUTTON_LAYOUT.minWidth}
     `);
     const bounds = screenshotButtonWindow.getBounds();
-    const width = Math.max(146, Math.min(228, Number(desiredWidth) || 146));
+    const width = Math.max(SCREENSHOT_BUTTON_LAYOUT.minWidth, Math.min(SCREENSHOT_BUTTON_LAYOUT.maxWidth, Number(desiredWidth) || SCREENSHOT_BUTTON_LAYOUT.minWidth));
     if (bounds.width !== width) screenshotButtonWindow.setBounds({ ...bounds, width }, false);
     await positionScreenshotButton();
   } catch (error) {
@@ -241,7 +334,7 @@ async function triggerScreenshot() {
         cancelId: 1,
       });
       if (result.response === 0) {
-        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture').catch(() => {});
+        shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture').catch((error) => console.warn('Could not open macOS Screen Recording settings:', error));
       }
       return false;
     }
@@ -283,8 +376,8 @@ function createScreenshotButtonWindow() {
   if (!mainWindow || mainWindow.isDestroyed() || screenshotButtonWindow) return;
 
   screenshotButtonWindow = new BrowserWindow({
-    width: 146,
-    height: 48,
+    width: SCREENSHOT_BUTTON_LAYOUT.minWidth,
+    height: SCREENSHOT_BUTTON_LAYOUT.height,
     show: false,
     frame: false,
     transparent: true,
@@ -407,7 +500,7 @@ function updateBrowserLanguage(win) {
 
 function applyZoom() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  try { mainWindow.webContents.setZoomFactor(settings.zoomFactor); } catch (_) {}
+  try { mainWindow.webContents.setZoomFactor(settings.zoomFactor); } catch (error) { warnWebUiError('Could not apply zoom', error); }
 }
 
 function registerGlobalScreenshot() {
@@ -723,7 +816,7 @@ function installIpcHandlers() {
     const shortcutRegistered = registerGlobalScreenshot();
     const autostartApplied = syncAutostart(settings.startAtLogin);
     applyZoom();
-    autoUpdater.autoInstallOnAppQuit = Boolean(settings.installUpdatesOnQuit);
+    if (process.platform !== 'darwin') autoUpdater.autoInstallOnAppQuit = Boolean(settings.installUpdatesOnQuit);
     refreshScreenshotButtonVisibility();
     suppressInjectedScreenshotButton();
     rebuildTray();
@@ -813,17 +906,7 @@ function checkForUpdates(manual = false) {
     return;
   }
   if (process.platform === 'darwin') {
-    if (manual) {
-      showMessageBox({
-        type: 'info',
-        title: `VibeZ · ${text.updates}`,
-        message: 'Unsigned macOS builds are updated manually from GitHub Releases.',
-        detail: 'This avoids unreliable in-place installation without a paid Apple signing identity.',
-        buttons: [text.openReleases, text.close],
-        defaultId: 0,
-        cancelId: 1,
-      }).then((result) => { if (result.response === 0) shell.openExternal(RELEASES_URL); });
-    }
+    void checkMacUpdates(manual);
     return;
   }
   installUpdaterHandlers();
@@ -887,8 +970,8 @@ app.whenReady().then(() => {
   syncAutostart(settings.startAtLogin);
 
   if (app.isPackaged) {
-    installUpdaterHandlers();
-    if (settings.autoUpdates && !process.env.FLATPAK_ID && process.platform !== 'darwin') checkForUpdates(false);
+    if (process.platform !== 'darwin') installUpdaterHandlers();
+    if (settings.autoUpdates && !process.env.FLATPAK_ID) checkForUpdates(false);
   }
 });
 

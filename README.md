@@ -6,7 +6,7 @@ A free cross-platform desktop client for [Mistral Vibe](https://vibe.mistral.ai/
 
 ## Platforms
 
-VibeZ 1.4.0 brings the same VibeZ experience to all three major desktop platforms from one shared Electron codebase.
+VibeZ 1.4.1 brings the same VibeZ experience to all three major desktop platforms from one shared Electron codebase.
 
 | Platform | Architectures | Packages |
 | --- | --- | --- |
@@ -135,9 +135,9 @@ The executable name/path differs by operating system, so Windows and macOS users
 
 ## Updates
 
-VibeZ checks GitHub Releases for updates. Linux and Windows packages support VibeZ's in-app update flow where their package type allows it. The free unsigned macOS builds use **manual updates from GitHub Releases** because reliable in-place macOS updating requires a signed application.
+VibeZ checks GitHub Releases for updates. Linux and Windows packages support VibeZ's in-app update flow where their package type allows it. The free unsigned macOS builds now **check automatically and notify you when a newer release exists**, while the actual macOS installation remains manual because reliable in-place updating requires a signed application.
 
-Automatic checking and install-on-quit behavior can be configured in Settings where supported. Those two controls are hidden on unsigned macOS builds.
+Automatic update checking can be configured in Settings on all three platforms. Install-on-quit is available where in-app installation is supported and remains hidden on unsigned macOS builds. On macOS, an update notification opens the matching GitHub Release so you can download the new DMG or ZIP yourself.
 
 ## Build from source
 

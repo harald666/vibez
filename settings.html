@@ -63,7 +63,7 @@
   function applyPlatform(value){
     platform=String(value||'linux');isMac=platform==='darwin';isLinux=platform==='linux';
     el('displayBackendRow').hidden=!isLinux;
-    el('autoUpdatesRow').hidden=isMac;
+    el('autoUpdatesRow').hidden=false;
     el('installOnQuitRow').hidden=isMac;
     if(isMac){
       const shortcut=el('screenshotShortcut');

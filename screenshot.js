@@ -1,6 +1,7 @@
 const { BrowserWindow, clipboard, desktopCapturer, dialog, ipcMain, screen } = require('electron');
 const path = require('path');
 const { t, uiBundle } = require('./i18n');
+const { ACCOUNT_WORDS, SIGN_IN_WORDS, SIGN_UP_WORDS } = require('./ui-detection');
 
 let mainWindow = null;
 let overlayWindows = [];
@@ -52,6 +53,9 @@ async function installScreenshotButton() {
         const BUTTON_ID = 'vibez-screenshot-button';
         const GAP = 10;
         const screenshotLabel = ${JSON.stringify(t(currentLanguage(), 'screenshot'))};
+        const accountLabels = ${JSON.stringify(ACCOUNT_WORDS)};
+        const signInLabels = new Set(${JSON.stringify(SIGN_IN_WORDS)});
+        const signUpLabels = new Set(${JSON.stringify(SIGN_UP_WORDS)});
 
         const visible = (element) => {
           if (!element || !element.isConnected) return false;
@@ -77,10 +81,7 @@ async function installScreenshotButton() {
           const hasEmailInput = Boolean(document.querySelector('input[type="email"], input[autocomplete="email"], input[name*="email" i]'));
           const bodyText = (document.body?.innerText || '').replace(/\\s+/g, ' ').toLowerCase();
           return hasEmailInput && (
-            title.includes('inloggen') ||
-            title.includes('login') ||
-            title.includes('log in') ||
-            title.includes('sign in') ||
+            [...signInLabels].some((label) => title.includes(label) || bodyText.includes(label)) ||
             bodyText.includes('wachtwoord vergeten') ||
             bodyText.includes('forgot password') ||
             bodyText.includes('hieronder inloggen') ||
@@ -93,9 +94,6 @@ async function installScreenshotButton() {
             .filter((element) => element.id !== BUTTON_ID && visible(element))
             .map((element) => ({ element, text: textOf(element), rect: element.getBoundingClientRect() }))
             .filter((item) => item.rect.top >= 0 && item.rect.top < Math.min(130, window.innerHeight * 0.3));
-
-          const signUpLabels = new Set(['aanmelden', 'sign up', 'register', 'registreren', 'create account']);
-          const signInLabels = new Set(['inloggen', 'login', 'log in', 'sign in']);
 
           const signUp = nodes
             .filter((item) => signUpLabels.has(item.text))
@@ -137,7 +135,7 @@ async function installScreenshotButton() {
             .filter((element) => {
               if (element.id === BUTTON_ID || !visible(element)) return false;
               const text = textOf(element);
-              if (['aanmelden', 'inloggen', 'login', 'log in', 'sign in', 'sign up', 'register'].some((label) => text.includes(label))) return false;
+              if (accountLabels.some((label) => text.includes(label))) return false;
               const rect = element.getBoundingClientRect();
               return rect.top >= 0 &&
                 rect.top < Math.min(140, window.innerHeight * 0.35) &&

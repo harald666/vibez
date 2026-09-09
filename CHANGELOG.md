@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-09
+
+### Added
+- Automatic macOS update-availability checks that notify users about a newer GitHub Release while keeping unsigned installation manual.
+- Shared multilingual account-control detection used by both native and injected Screenshot UI paths.
+- Regression coverage for centralized account labels, named Screenshot layout constants and the macOS notification-only update flow.
+
+### Changed
+- Replaced repeated Screenshot positioning magic numbers in the main process with named layout constants.
+- Expanded the injected Screenshot fallback to use the same multilingual Sign in / Sign up detection as the native Screenshot button.
+- Automatic update checking is now configurable on macOS; install-on-quit remains disabled there because unsigned in-place installation is intentionally unsupported.
+- Expected navigation/render races stay quiet, while unexpected Screenshot UI failures now produce targeted diagnostic warnings.
+
+### Kept intentionally
+- Electron 43 automatic Ozone selection remains unchanged when Linux display backend is set to Automatic.
+- The native Screenshot overlay still hides when VibeZ loses focus so it cannot float over unrelated applications.
+- `electron-updater` remains on the valid 6.8.x release line; no downgrade is applied.
+
 ## [1.4.0] - 2026-09-08
 
 ### Added
@@ -129,7 +147,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/harald666/vibez/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/harald666/vibez/releases/tag/v1.4.1
 [1.4.0]: https://github.com/harald666/vibez/releases/tag/v1.4.0
 [1.3.2]: https://github.com/harald666/vibez/releases/tag/v1.3.2
 [1.3.1]: https://github.com/harald666/vibez/releases/tag/v1.3.1
