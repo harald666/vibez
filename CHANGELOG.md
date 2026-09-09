@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automatic update checking is now configurable on macOS; install-on-quit remains disabled there because unsigned in-place installation is intentionally unsupported.
 - Expected navigation/render races stay quiet, while unexpected Screenshot UI failures now produce targeted diagnostic warnings.
 
+### Security
+- Refreshed the transitive `js-yaml` dependency to 4.3.2 after a newly reported high-severity advisory; the release gate requires `npm audit --audit-level=high` to return clean before publication.
+
 ### Kept intentionally
 - Electron 43 automatic Ozone selection remains unchanged when Linux display backend is set to Automatic.
 - The native Screenshot overlay still hides when VibeZ loses focus so it cannot float over unrelated applications.
