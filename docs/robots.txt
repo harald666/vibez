@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://harald666.github.io/vibez/sitemap.xml
+Sitemap: https://harald666.github.io/vibez/sitemap.txt
