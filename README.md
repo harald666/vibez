@@ -33,6 +33,14 @@ Windows and macOS builds are deliberately distributed **unsigned** so VibeZ can 
 - Automated CI builds and package verification on Linux, Windows and macOS.
 - SHA-256 checksums for public release downloads.
 
+## Questions & Support
+
+Need help using VibeZ, have a question, or want to suggest an idea? Start a **[Q&A discussion](https://github.com/harald666/vibez/discussions/categories/q-a)**. Discussions are the preferred place for how-to questions, ideas, feedback and general conversation.
+
+Found a reproducible bug or error? **[Open a bug report](https://github.com/harald666/vibez/issues/new?template=bug_report.yml)**. Please include your operating system, VibeZ version, what you expected, what happened and the steps needed to reproduce the problem.
+
+Before posting, please check the existing **[Discussions](https://github.com/harald666/vibez/discussions)** and **[Issues](https://github.com/harald666/vibez/issues)** to see whether your question or problem has already been reported.
+
 ## Download
 
 Public releases are available on the **[GitHub Releases page](https://github.com/harald666/vibez/releases)**.
