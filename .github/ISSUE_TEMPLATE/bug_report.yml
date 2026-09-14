@@ -8,7 +8,7 @@ body:
         Thanks for helping improve VibeZ. Please use this form for reproducible bugs and errors.
 
         For how-to questions, ideas, feedback or general support, please use GitHub Discussions instead:
-        https://github.com/harald666/vibez/discussions/categories/q-a
+        https://github.com/lecomputeur/vibez/discussions/categories/q-a
 
   - type: input
     id: version

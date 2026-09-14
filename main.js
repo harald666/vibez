@@ -21,11 +21,11 @@ const { createSettingsStore } = require('./settings-store');
 const { resolveLanguage, t, uiBundle } = require('./i18n');
 const { ACCOUNT_WORDS } = require('./ui-detection');
 
-const REPO_URL = 'https://github.com/harald666/vibez';
+const REPO_URL = 'https://github.com/lecomputeur/vibez';
 const RELEASES_URL = `${REPO_URL}/releases/latest`;
 const VIBE_URL = 'https://vibe.mistral.ai/';
 const APP_PROTOCOL = 'vibez';
-const LATEST_RELEASE_API = 'https://api.github.com/repos/harald666/vibez/releases/latest';
+const LATEST_RELEASE_API = 'https://api.github.com/repos/lecomputeur/vibez/releases/latest';
 const SCREENSHOT_BUTTON_LAYOUT = Object.freeze({
   minWidth: 146,
   maxWidth: 228,
