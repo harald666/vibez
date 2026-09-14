@@ -12,7 +12,7 @@ A simple Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/). Vibe
 
 ## Install on Linux
 
-Download the latest package from the [releases page](https://github.com/harald666/vibez/releases).
+Download the latest package from the [releases page](https://github.com/lecomputeur/vibez/releases).
 
 ### Debian, Ubuntu, and Linux Mint
 
@@ -52,7 +52,7 @@ chmod +x VibeZ-1.0.0.AppImage
 ### Steps
 
 ```bash
-git clone https://github.com/harald666/vibez.git
+git clone https://github.com/lecomputeur/vibez.git
 cd vibez
 npm install
 npm start
