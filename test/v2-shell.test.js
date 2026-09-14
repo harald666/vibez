@@ -23,8 +23,12 @@ test('VibeZ 2.0 no longer creates the floating screenshot window', () => {
   assert.match(main, /triggerScreenshot/);
 });
 
-test('2.0 test branch has an isolated beta entrypoint', () => {
+test('2.0 test branch uses an isolated beta bootstrap', () => {
   const pkg = JSON.parse(read('package.json'));
-  assert.equal(pkg.main, 'main-v2.js');
+  const bootstrap = read('main-v2-bootstrap.js');
+  assert.equal(pkg.main, 'main-v2-bootstrap.js');
   assert.match(pkg.version, /^2\.0\.0-beta\./);
+  assert.match(bootstrap, /VibeZ-2\.0-test/);
+  assert.match(bootstrap, /setAsDefaultProtocolClient = \(\) => false/);
+  assert.match(bootstrap, /setLoginItemSettings = \(\) => \{\}/);
 });
