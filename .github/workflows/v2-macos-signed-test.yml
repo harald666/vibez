@@ -12,7 +12,9 @@ concurrency:
 
 jobs:
   macos-intel:
+    name: macos-intel
     runs-on: macos-15-intel
+    timeout-minutes: 55
     env:
       MAC_CERTIFICATE_P12_BASE64: ${{ secrets.MAC_CERTIFICATE_P12_BASE64 }}
       MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
@@ -26,6 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
       - name: Verify signing secrets are configured
         shell: bash
         run: |
@@ -35,9 +38,13 @@ jobs:
           test -n "$APPLE_API_KEY_ID"
           test -n "$APPLE_API_ISSUER"
           test -n "$APPLE_TEAM_ID"
+
       - name: Refresh beta lock metadata
         run: npm install --package-lock-only --ignore-scripts
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Decode Apple signing material
         shell: bash
         run: |
@@ -47,24 +54,93 @@ jobs:
           (temp / 'vibez-developer-id.p12').write_bytes(base64.b64decode(os.environ['MAC_CERTIFICATE_P12_BASE64']))
           (temp / 'AuthKey.p8').write_bytes(base64.b64decode(os.environ['APPLE_API_KEY_P8_BASE64']))
           PY
-      - name: Build signed and notarized macOS Intel beta
+          chmod 600 "$RUNNER_TEMP/vibez-developer-id.p12" "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Build and sign Intel app (notarization disabled)
         env:
           CSC_LINK: ${{ runner.temp }}/vibez-developer-id.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
-        run: npx electron-builder --mac dmg zip --x64 --publish never
-      - name: Verify Developer ID signature and Gatekeeper assessment
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          p.build.mac.notarize = false;
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          NODE
+          npx electron-builder --mac zip --x64 --publish never
+
+      - name: Verify Intel Developer ID signature
         shell: bash
         run: |
           APP="$(find dist/mac -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
           codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Authority=Developer ID Application|TeamIdentifier='
+
+      - name: Submit Intel app to Apple notarization
+        env:
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        shell: bash
+        run: |
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-x64.zip' -print -quit)"
+          test -n "$ZIP"
+          echo "Submitting signed Intel app archive to Apple: $ZIP"
+          xcrun notarytool submit "$ZIP" \
+            --key "$APPLE_API_KEY" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 20m
+
+      - name: Staple and verify Intel app
+        shell: bash
+        run: |
+          APP="$(find dist/mac -maxdepth 1 -type d -name '*.app' -print -quit)"
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
           spctl --assess --type execute --verbose=4 "$APP"
+
+      - name: Recreate Intel ZIP with stapled app
+        shell: bash
+        run: |
+          APP="$(find dist/mac -maxdepth 1 -type d -name '*.app' -print -quit)"
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-x64.zip' -print -quit)"
+          rm -f "$ZIP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+
+      - name: Create Intel DMG from stapled app
+        shell: bash
+        run: |
+          APP="$(find dist/mac -maxdepth 1 -type d -name '*.app' -print -quit)"
+          VERSION="$(node -p "require('./package.json').version")"
+          DMG="dist/VibeZ-2-Beta-${VERSION}-macOS-x64.dmg"
+          hdiutil create -volname "VibeZ 2 Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
+
+      - name: Submit Intel DMG to Apple notarization
+        env:
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        shell: bash
+        run: |
           DMG="$(find dist -maxdepth 1 -type f -name '*macOS-x64.dmg' -print -quit)"
           test -n "$DMG"
+          echo "Submitting Intel DMG to Apple: $DMG"
+          xcrun notarytool submit "$DMG" \
+            --key "$APPLE_API_KEY" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 20m
+
+      - name: Staple and validate Intel DMG
+        shell: bash
+        run: |
+          DMG="$(find dist -maxdepth 1 -type f -name '*macOS-x64.dmg' -print -quit)"
+          xcrun stapler staple "$DMG"
           xcrun stapler validate "$DMG"
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload Intel signed and notarized artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: VibeZ-2.0.0-beta.1-macOS-Intel-SIGNED-NOTARIZED
           path: |
@@ -73,7 +149,9 @@ jobs:
           if-no-files-found: error
 
   macos-arm64:
+    name: macos-arm64
     runs-on: macos-15
+    timeout-minutes: 55
     env:
       MAC_CERTIFICATE_P12_BASE64: ${{ secrets.MAC_CERTIFICATE_P12_BASE64 }}
       MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
@@ -87,6 +165,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
       - name: Verify signing secrets are configured
         shell: bash
         run: |
@@ -96,9 +175,13 @@ jobs:
           test -n "$APPLE_API_KEY_ID"
           test -n "$APPLE_API_ISSUER"
           test -n "$APPLE_TEAM_ID"
+
       - name: Refresh beta lock metadata
         run: npm install --package-lock-only --ignore-scripts
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Decode Apple signing material
         shell: bash
         run: |
@@ -108,25 +191,93 @@ jobs:
           (temp / 'vibez-developer-id.p12').write_bytes(base64.b64decode(os.environ['MAC_CERTIFICATE_P12_BASE64']))
           (temp / 'AuthKey.p8').write_bytes(base64.b64decode(os.environ['APPLE_API_KEY_P8_BASE64']))
           PY
-      - name: Build signed and notarized macOS Apple Silicon beta
+          chmod 600 "$RUNNER_TEMP/vibez-developer-id.p12" "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Build and sign Apple Silicon app (notarization disabled)
         env:
           CSC_LINK: ${{ runner.temp }}/vibez-developer-id.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
-        run: npx electron-builder --mac dmg zip --arm64 --publish never
-      - name: Verify Developer ID signature and Gatekeeper assessment
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          p.build.mac.notarize = false;
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          NODE
+          npx electron-builder --mac zip --arm64 --publish never
+
+      - name: Verify Apple Silicon Developer ID signature
         shell: bash
         run: |
           APP="$(find dist/mac-arm64 -maxdepth 1 -type d -name '*.app' -print -quit)"
-          if [ -z "$APP" ]; then APP="$(find dist/mac -maxdepth 1 -type d -name '*.app' -print -quit)"; fi
           test -n "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
           codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Authority=Developer ID Application|TeamIdentifier='
+
+      - name: Submit Apple Silicon app to Apple notarization
+        env:
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        shell: bash
+        run: |
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
+          test -n "$ZIP"
+          echo "Submitting signed Apple Silicon app archive to Apple: $ZIP"
+          xcrun notarytool submit "$ZIP" \
+            --key "$APPLE_API_KEY" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 20m
+
+      - name: Staple and verify Apple Silicon app
+        shell: bash
+        run: |
+          APP="$(find dist/mac-arm64 -maxdepth 1 -type d -name '*.app' -print -quit)"
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
           spctl --assess --type execute --verbose=4 "$APP"
+
+      - name: Recreate Apple Silicon ZIP with stapled app
+        shell: bash
+        run: |
+          APP="$(find dist/mac-arm64 -maxdepth 1 -type d -name '*.app' -print -quit)"
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
+          rm -f "$ZIP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+
+      - name: Create Apple Silicon DMG from stapled app
+        shell: bash
+        run: |
+          APP="$(find dist/mac-arm64 -maxdepth 1 -type d -name '*.app' -print -quit)"
+          VERSION="$(node -p "require('./package.json').version")"
+          DMG="dist/VibeZ-2-Beta-${VERSION}-macOS-arm64.dmg"
+          hdiutil create -volname "VibeZ 2 Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
+
+      - name: Submit Apple Silicon DMG to Apple notarization
+        env:
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        shell: bash
+        run: |
           DMG="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
           test -n "$DMG"
+          echo "Submitting Apple Silicon DMG to Apple: $DMG"
+          xcrun notarytool submit "$DMG" \
+            --key "$APPLE_API_KEY" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 20m
+
+      - name: Staple and validate Apple Silicon DMG
+        shell: bash
+        run: |
+          DMG="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
+          xcrun stapler staple "$DMG"
           xcrun stapler validate "$DMG"
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload Apple Silicon signed and notarized artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-SIGNED-NOTARIZED
           path: |
