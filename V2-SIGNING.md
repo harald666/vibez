@@ -20,7 +20,7 @@ Required external setup:
 
 1. Apply at https://signpath.org/apply.html.
 2. Enable MFA for GitHub and SignPath.
-3. Install the SignPath GitHub App for `harald666/vibez` when requested.
+3. Install the SignPath GitHub App for `lecomputeur/vibez` when requested.
 4. Create/link the predefined GitHub.com Trusted Build System in SignPath.
 5. Create the SignPath project and signing policy.
 6. Configure the SignPath artifact configuration for the VibeZ Windows installer.
@@ -55,7 +55,7 @@ The signing job must:
 
 The current code-signing policy is published at:
 
-https://harald666.github.io/vibez/code-signing-policy.html
+https://lecomputeur.github.io/vibez/code-signing-policy.html
 
 ## macOS — Apple Developer ID + notarization
 

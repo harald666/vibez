@@ -35,15 +35,15 @@ Windows and macOS builds are deliberately distributed **unsigned** so VibeZ can 
 
 ## Questions & Support
 
-Need help using VibeZ, have a question, or want to suggest an idea? Start a **[Q&A discussion](https://github.com/harald666/vibez/discussions/categories/q-a)**. Discussions are the preferred place for how-to questions, ideas, feedback and general conversation.
+Need help using VibeZ, have a question, or want to suggest an idea? Start a **[Q&A discussion](https://github.com/lecomputeur/vibez/discussions/categories/q-a)**. Discussions are the preferred place for how-to questions, ideas, feedback and general conversation.
 
-Found a reproducible bug or error? **[Open a bug report](https://github.com/harald666/vibez/issues/new?template=bug_report.yml)**. Please include your operating system, VibeZ version, what you expected, what happened and the steps needed to reproduce the problem.
+Found a reproducible bug or error? **[Open a bug report](https://github.com/lecomputeur/vibez/issues/new?template=bug_report.yml)**. Please include your operating system, VibeZ version, what you expected, what happened and the steps needed to reproduce the problem.
 
-Before posting, please check the existing **[Discussions](https://github.com/harald666/vibez/discussions)** and **[Issues](https://github.com/harald666/vibez/issues)** to see whether your question or problem has already been reported.
+Before posting, please check the existing **[Discussions](https://github.com/lecomputeur/vibez/discussions)** and **[Issues](https://github.com/lecomputeur/vibez/issues)** to see whether your question or problem has already been reported.
 
 ## Download
 
-Public releases are available on the **[GitHub Releases page](https://github.com/harald666/vibez/releases)**.
+Public releases are available on the **[GitHub Releases page](https://github.com/lecomputeur/vibez/releases)**.
 
 ### Windows
 
@@ -65,7 +65,7 @@ Because these builds are unsigned and not notarized, macOS may block the first l
 Install the latest Linux release with one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh | bash
 ```
 
 The installer detects your Linux distribution and CPU architecture, downloads the matching package from the latest GitHub release and verifies its SHA-256 checksum when `SHA256SUMS` is available.
@@ -73,7 +73,7 @@ The installer detects your Linux distribution and CPU architecture, downloads th
 To uninstall a package installed this way:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh | bash -s -- --uninstall
 ```
 
 ### Linux packages
@@ -158,7 +158,7 @@ Automatic update checking can be configured in Settings on all three platforms. 
 ### Development
 
 ```bash
-git clone https://github.com/harald666/vibez.git
+git clone https://github.com/lecomputeur/vibez.git
 cd vibez
 npm install
 npm test
