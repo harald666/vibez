@@ -44,6 +44,12 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder --linux AppImage --x64 --publish never
+      - name: Prepare Chromium sandbox for packaged smoke test
+        run: |
+          SANDBOX="dist/linux-unpacked/chrome-sandbox"
+          test -f "$SANDBOX"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
       - name: Verify beta package version
         run: |
           test -n "$(find dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
