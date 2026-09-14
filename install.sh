@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="harald666/vibez"
+REPO="lecomputeur/vibez"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 RELEASES_URL="https://github.com/${REPO}/releases/latest"
 

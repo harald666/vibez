@@ -11,7 +11,7 @@ VibeZ is free and open source. To keep distribution at **€0**, the Windows and
 - Most Windows PCs: `VibeZ-<version>-Windows-x64.exe`
 - Windows on ARM devices: `VibeZ-<version>-Windows-arm64.exe`
 
-Download the installer from the [GitHub Releases](https://github.com/harald666/vibez/releases) page.
+Download the installer from the [GitHub Releases](https://github.com/lecomputeur/vibez/releases) page.
 
 ### Windows SmartScreen warning
 
@@ -36,7 +36,7 @@ On managed work or school PCs, your administrator may block unsigned application
 
 A ZIP build is also supplied for each architecture. For most users, the DMG is the easiest option.
 
-Download VibeZ from the [GitHub Releases](https://github.com/harald666/vibez/releases) page, open the DMG and drag **VibeZ** to **Applications**.
+Download VibeZ from the [GitHub Releases](https://github.com/lecomputeur/vibez/releases) page, open the DMG and drag **VibeZ** to **Applications**.
 
 ### macOS Gatekeeper warning
 
@@ -89,4 +89,4 @@ The calculated value must exactly match the corresponding line in `SHA256SUMS` o
 
 Microsoft and Apple charge for the developer identities normally used to sign public desktop applications. VibeZ deliberately keeps distribution free. The trade-off is the one-time operating-system warning described above.
 
-Only download VibeZ from **https://github.com/harald666/vibez** or the website linked from that repository.
+Only download VibeZ from **https://github.com/lecomputeur/vibez** or the website linked from that repository.
