@@ -4,7 +4,7 @@
   "desktopName": "com.vibez.app",
   "description": "A graphical Linux desktop client for Mistral Vibe",
   "license": "MIT",
-  "homepage": "https://github.com/harald666/vibez",
+  "homepage": "https://github.com/lecomputeur/vibez",
   "author": {
     "name": "Joe Pizza",
     "email": "info@lecomputeur.nl"
@@ -37,7 +37,7 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "harald666",
+      "owner": "lecomputeur",
       "repo": "vibez",
       "releaseType": "release"
     },

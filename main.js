@@ -19,7 +19,7 @@ const { setupScreenshot } = require('./screenshot');
 const { createSettingsStore } = require('./settings-store');
 const { resolveLanguage, t, uiBundle } = require('./i18n');
 
-const REPO_URL = 'https://github.com/harald666/vibez';
+const REPO_URL = 'https://github.com/lecomputeur/vibez';
 const RELEASES_URL = `${REPO_URL}/releases/latest`;
 const VIBE_URL = 'https://vibe.mistral.ai/';
 const APP_PROTOCOL = 'vibez';

@@ -28,7 +28,7 @@ A Linux desktop client for [Mistral Vibe](https://vibe.mistral.ai/) with native 
 Install the latest VibeZ release with one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh | bash
 ```
 
 The installer detects your Linux distribution and CPU architecture, downloads the matching package from the latest GitHub release and verifies its SHA-256 checksum when `SHA256SUMS` is available.
@@ -36,7 +36,7 @@ The installer detects your Linux distribution and CPU architecture, downloads th
 To uninstall a package installed this way:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/harald666/vibez/main/install.sh | bash -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh | bash -s -- --uninstall
 ```
 
 Latest release: **VibeZ 1.3.1**
@@ -45,22 +45,22 @@ Latest release: **VibeZ 1.3.1**
 
 | Distribution | Download |
 | --- | --- |
-| Debian / Ubuntu / Linux Mint | [VibeZ_1.3.1_amd64.deb](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ_1.3.1_amd64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.1.x86_64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.x86_64.rpm) |
-| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.3.1.pacman](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.pacman) |
-| Portable AppImage | [VibeZ-1.3.1.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.AppImage) |
-| Flatpak bundle | [VibeZ-1.3.1-x86_64.flatpak](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-x86_64.flatpak) |
+| Debian / Ubuntu / Linux Mint | [VibeZ_1.3.1_amd64.deb](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ_1.3.1_amd64.deb) |
+| Fedora / RPM-based | [VibeZ-1.3.1.x86_64.rpm](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1.x86_64.rpm) |
+| Arch Linux / Manjaro / EndeavourOS | [VibeZ-1.3.1.pacman](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1.pacman) |
+| Portable AppImage | [VibeZ-1.3.1.AppImage](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1.AppImage) |
+| Flatpak bundle | [VibeZ-1.3.1-x86_64.flatpak](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1-x86_64.flatpak) |
 
 ### Direct downloads — ARM64 / AArch64
 
 | Distribution | Download |
 | --- | --- |
-| Debian / Ubuntu | [VibeZ_1.3.1_arm64.deb](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ_1.3.1_arm64.deb) |
-| Fedora / RPM-based | [VibeZ-1.3.1.aarch64.rpm](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1.aarch64.rpm) |
-| Arch-based ARM64 | [VibeZ-1.3.1-aarch64.pacman](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-aarch64.pacman) |
-| Portable AppImage | [VibeZ-1.3.1-arm64.AppImage](https://github.com/harald666/vibez/releases/download/v1.3.1/VibeZ-1.3.1-arm64.AppImage) |
+| Debian / Ubuntu | [VibeZ_1.3.1_arm64.deb](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ_1.3.1_arm64.deb) |
+| Fedora / RPM-based | [VibeZ-1.3.1.aarch64.rpm](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1.aarch64.rpm) |
+| Arch-based ARM64 | [VibeZ-1.3.1-aarch64.pacman](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1-aarch64.pacman) |
+| Portable AppImage | [VibeZ-1.3.1-arm64.AppImage](https://github.com/lecomputeur/vibez/releases/download/v1.3.1/VibeZ-1.3.1-arm64.AppImage) |
 
-All releases and checksums are available on the [GitHub Releases page](https://github.com/harald666/vibez/releases).
+All releases and checksums are available on the [GitHub Releases page](https://github.com/lecomputeur/vibez/releases).
 
 ### Manual package installation
 
@@ -139,7 +139,7 @@ Installed releases can check GitHub Releases automatically. When an update has d
 ### Steps
 
 ```bash
-git clone https://github.com/harald666/vibez.git
+git clone https://github.com/lecomputeur/vibez.git
 cd vibez
 npm install
 npm test
