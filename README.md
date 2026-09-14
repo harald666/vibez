@@ -16,6 +16,8 @@ VibeZ 1.4.1 brings the same VibeZ experience to all three major desktop platform
 
 Windows and macOS builds are deliberately distributed **unsigned** so VibeZ can remain a zero-cost project. Windows SmartScreen or macOS Gatekeeper may therefore show a security warning on first launch. See **[Windows & macOS installation](WINDOWS-MACOS.md)** for the exact safe installation steps, screenshot permission on macOS and checksum verification.
 
+VibeZ 2.0 is being prepared for signed Windows releases and signed/notarized macOS releases. See the **[Code signing policy](https://harald666.github.io/vibez/code-signing-policy.html)**.
+
 ## Features
 
 - Opens the official Mistral Vibe web app in a dedicated desktop window.
