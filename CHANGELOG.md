@@ -31,6 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - Fixed Screenshot button overlap with Vibe's star and share controls.
 
-[Unreleased]: https://github.com/harald666/vibez/compare/v1.1.2...HEAD
-[1.1.2]: https://github.com/harald666/vibez/releases/tag/v1.1.2
-[1.1.0]: https://github.com/harald666/vibez/releases/tag/v1.1.0
+[Unreleased]: https://github.com/lecomputeur/vibez/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/lecomputeur/vibez/releases/tag/v1.1.2
+[1.1.0]: https://github.com/lecomputeur/vibez/releases/tag/v1.1.0
