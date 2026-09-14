@@ -85,7 +85,8 @@
       "artifactName": "VibeZ-2-Beta-${version}-macOS-${arch}.${ext}",
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "notarize": true
     },
     "dmg": {
       "title": "VibeZ 2 Beta ${version}"
