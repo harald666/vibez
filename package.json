@@ -1,7 +1,7 @@
 {
   "name": "VibeZ",
   "version": "2.0.0-beta.1",
-  "desktopName": "com.vibez.app",
+  "desktopName": "com.vibez.app.beta",
   "description": "A cross-platform desktop client for Mistral Vibe",
   "license": "MIT",
   "homepage": "https://github.com/harald666/vibez",
@@ -24,14 +24,14 @@
     "electron-builder": "^26.15.3"
   },
   "build": {
-    "appId": "com.vibez.app",
-    "productName": "VibeZ",
-    "executableName": "vibez",
+    "appId": "com.vibez.app.beta",
+    "productName": "VibeZ 2 Beta",
+    "executableName": "vibez2-beta",
     "protocols": [
       {
-        "name": "VibeZ",
+        "name": "VibeZ 2 Beta",
         "schemes": [
-          "vibez"
+          "vibez-beta"
         ]
       }
     ],
@@ -39,7 +39,7 @@
       "provider": "github",
       "owner": "harald666",
       "repo": "vibez",
-      "releaseType": "release"
+      "releaseType": "prerelease"
     },
     "directories": {
       "output": "dist"
@@ -53,8 +53,9 @@
         "pacman"
       ],
       "category": "Development",
-      "synopsis": "Desktop client for Mistral Vibe",
-      "description": "VibeZ is an independent desktop client for Mistral Vibe with screenshot tools, desktop integration and automatic updates.",
+      "synopsis": "VibeZ 2 beta desktop client for Mistral Vibe",
+      "description": "VibeZ 2 Beta is an isolated test build of the cross-platform Mistral Vibe desktop client.",
+      "artifactName": "VibeZ-2-Beta-${version}-Linux-${arch}.${ext}",
       "syncDesktopName": true
     },
     "win": {
@@ -62,7 +63,7 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "VibeZ-${version}-Windows-${arch}.${ext}"
+      "artifactName": "VibeZ-2-Beta-${version}-Windows-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -71,7 +72,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "VibeZ",
+      "shortcutName": "VibeZ 2 Beta",
       "deleteAppDataOnUninstall": false
     },
     "mac": {
@@ -81,11 +82,13 @@
         "dmg",
         "zip"
       ],
-      "artifactName": "VibeZ-${version}-macOS-${arch}.${ext}",
-      "hardenedRuntime": true
+      "artifactName": "VibeZ-2-Beta-${version}-macOS-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
     "dmg": {
-      "title": "VibeZ ${version}"
+      "title": "VibeZ 2 Beta ${version}"
     },
     "pacman": {
       "depends": [
