@@ -28,7 +28,7 @@ Vertel **exact** wat moet gebeuren:
 
 ### 3️⃣ Jij test
 ```bash
-cd /workspace/github__harald666__vibez
+cd /workspace/github__lecomputeur__vibez
 git fetch origin
 git checkout vibe/<branchnaam>  # bijv. vibe/plakken-knop-4de0ec
 # Test hier lokaal
