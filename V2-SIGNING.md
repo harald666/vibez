@@ -6,11 +6,22 @@ This document describes the production signing path for VibeZ 2.0. Stable VibeZ 
 
 Production VibeZ 2.0 releases should ship as:
 
-- **Windows x64 and ARM64:** signed NSIS installers.
+- **Windows x64:** signed NSIS installer.
 - **macOS Intel and Apple Silicon:** Developer ID signed and Apple-notarized DMG/ZIP packages.
-- **Linux:** existing package formats with SHA-256 checksums.
+- **Linux x64:** AppImage, DEB, RPM, Pacman and Flatpak packages with SHA-256 checksums.
 
 Beta builds can remain unsigned until credentials are connected. A beta must never be presented as signed unless verification succeeds in CI.
+
+## Public package policy
+
+VibeZ 2.0 deliberately keeps broad x86_64 Linux packaging as an ode to the Linux community while avoiding rarely used ARM64 desktop packages:
+
+- Windows x64: NSIS `.exe`.
+- macOS Apple Silicon: notarized `.dmg` plus ZIP for update compatibility.
+- macOS Intel: notarized `.dmg` plus ZIP for update compatibility.
+- Linux x64: AppImage, DEB, RPM, Pacman and Flatpak.
+
+Windows ARM64 and Linux ARM64 are not part of the VibeZ 2.0 public release set. They can be reconsidered later if actual user demand justifies them.
 
 ## Windows — SignPath Foundation
 
@@ -132,8 +143,8 @@ This identity switch must happen only in the production release path, not in the
 
 VibeZ 2.0 must not be published as stable until all of these are true:
 
-- Linux x64 and ARM64 builds pass.
-- Windows x64 and ARM64 builds pass.
+- Linux x64 AppImage, DEB, RPM, Pacman and Flatpak builds pass.
+- Windows x64 build passes.
 - macOS Intel and Apple Silicon builds pass.
 - Windows installers are signed and signature verification passes.
 - macOS apps are Developer ID signed and notarized.

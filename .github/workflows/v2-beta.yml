@@ -56,33 +56,9 @@ jobs:
           APP="dist/linux-unpacked/vibez2-beta"
           test -x "$APP"
           test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Linux-x64
-          path: dist/*.AppImage
-          if-no-files-found: error
-
-  linux-arm64:
-    needs: test
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - name: Refresh root lock metadata for beta version
-        run: npm install --package-lock-only --ignore-scripts
-      - run: npm ci
-      - name: Build isolated Linux ARM64 beta
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --linux AppImage --arm64 --publish never
-      - name: Verify Linux ARM64 beta artifact
-        run: test -n "$(find dist -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: VibeZ-2.0.0-beta.1-Linux-ARM64
           path: dist/*.AppImage
           if-no-files-found: error
 
@@ -113,38 +89,10 @@ jobs:
           $expected = (node -p "require('./package.json').version").Trim()
           $actual = (& $app --version | Select-Object -Last 1).Trim()
           if ($actual -ne $expected) { throw "Unexpected beta version: $actual" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Windows-x64-UNSIGNED
           path: dist/*Windows-x64.exe
-          if-no-files-found: error
-
-  windows-arm64:
-    needs: test
-    runs-on: windows-11-arm
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - name: Refresh root lock metadata for beta version
-        run: npm install --package-lock-only --ignore-scripts
-      - run: npm ci
-      - name: Build isolated Windows ARM64 beta
-        shell: pwsh
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --win nsis --arm64 --publish never
-      - name: Verify Windows ARM64 beta artifact
-        shell: pwsh
-        run: |
-          $installer = Get-ChildItem dist -File -Filter '*Windows-arm64.exe' | Select-Object -First 1
-          if (-not $installer) { throw 'Windows ARM64 beta installer missing.' }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: VibeZ-2.0.0-beta.1-Windows-ARM64-UNSIGNED
-          path: dist/*Windows-arm64.exe
           if-no-files-found: error
 
   macos-intel:
@@ -171,7 +119,7 @@ jobs:
           APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"
           test -n "$APP"
           test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-macOS-Intel-UNSIGNED
           path: |
@@ -204,7 +152,7 @@ jobs:
           if [ -z "$APP" ]; then APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"; fi
           test -n "$APP"
           test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-UNSIGNED
           path: |

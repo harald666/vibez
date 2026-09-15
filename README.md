@@ -10,9 +10,9 @@ VibeZ 1.4.1 brings the same VibeZ experience to all three major desktop platform
 
 | Platform | Architectures | Packages |
 | --- | --- | --- |
-| **Windows** | x64, ARM64 | NSIS `.exe` installer |
+| **Windows** | x64 | NSIS `.exe` installer |
 | **macOS** | Apple Silicon, Intel | `.dmg` and `.zip` |
-| **Linux** | x86_64, ARM64 | AppImage, DEB, RPM, Pacman; Flatpak on x86_64 |
+| **Linux** | x86_64 | AppImage, DEB, RPM, Pacman and Flatpak |
 
 Windows and macOS builds are deliberately distributed **unsigned** so VibeZ can remain a zero-cost project. Windows SmartScreen or macOS Gatekeeper may therefore show a security warning on first launch. See **[Windows & macOS installation](WINDOWS-MACOS.md)** for the exact safe installation steps, screenshot permission on macOS and checksum verification.
 
@@ -48,7 +48,6 @@ Public releases are available on the **[GitHub Releases page](https://github.com
 ### Windows
 
 - Most Windows PCs: `VibeZ-<version>-Windows-x64.exe`
-- Windows on ARM: `VibeZ-<version>-Windows-arm64.exe`
 
 Because these installers are unsigned, Windows may show **Windows protected your PC** or **Unknown publisher**. Use the steps in [WINDOWS-MACOS.md](WINDOWS-MACOS.md) when the installer came from this repository.
 
@@ -68,7 +67,7 @@ Install the latest Linux release with one command:
 curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh | bash
 ```
 
-The installer detects your Linux distribution and CPU architecture, downloads the matching package from the latest GitHub release and verifies its SHA-256 checksum when `SHA256SUMS` is available.
+The installer supports x86_64 Linux, detects your distribution, downloads the matching package from the latest GitHub release and verifies its SHA-256 checksum when `SHA256SUMS` is available.
 
 To uninstall a package installed this way:
 
@@ -78,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/lecomputeur/vibez/main/install.sh |
 
 ### Linux packages
 
-The release page provides:
+For x86_64 Linux systems, the release page provides:
 
 - Debian / Ubuntu / Linux Mint: `.deb`
 - Fedora and RPM-based distributions: `.rpm`
@@ -180,9 +179,9 @@ GitHub CI runs:
 - dependency security audit at high severity and above;
 - unit tests and JavaScript syntax checks;
 - shell syntax validation for the Linux installer;
-- x86_64 and ARM64 Linux package builds;
+- x86_64 Linux package builds;
 - x86_64 Flatpak build;
-- Windows x64 and ARM64 NSIS builds;
+- Windows x64 NSIS build;
 - macOS Intel and Apple Silicon DMG/ZIP builds;
 - packaged-app version smoke checks on all supported native CI runners where practical;
 - a full Linux packaged application smoke test under a virtual display with Chromium sandboxing enabled.

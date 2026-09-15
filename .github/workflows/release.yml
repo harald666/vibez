@@ -82,35 +82,6 @@ jobs:
             dist/*.blockmap
           if-no-files-found: error
 
-  linux-arm64:
-    needs: test
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install packaging tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm libarchive-tools
-      - run: npm ci
-      - name: Build Linux ARM64
-        run: npx electron-builder --linux AppImage deb rpm pacman --arm64 --publish never
-      - uses: actions/upload-artifact@v5
-        with:
-          name: release-linux-arm64
-          path: |
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
-            dist/*.pacman
-            dist/*.pkg.tar.zst
-            dist/latest*.yml
-            dist/*.blockmap
-          if-no-files-found: error
-
   flatpak-x64:
     needs: test
     runs-on: ubuntu-24.04
@@ -170,41 +141,6 @@ jobs:
             dist/*.blockmap
           if-no-files-found: error
 
-  windows-arm64:
-    needs: test
-    runs-on: windows-11-arm
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build unsigned Windows ARM64 installer
-        shell: pwsh
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --win nsis --arm64 --publish never
-      - name: Smoke test Windows ARM64 package
-        shell: pwsh
-        run: |
-          $installer = Get-ChildItem dist -File -Filter '*Windows-arm64.exe' | Select-Object -First 1
-          if (-not $installer) { throw 'Windows ARM64 installer missing.' }
-          $app = 'dist\win-arm64-unpacked\vibez.exe'
-          if (-not (Test-Path $app)) { $app = 'dist\win-unpacked\vibez.exe' }
-          if (-not (Test-Path $app)) { throw 'Windows ARM64 packaged executable missing.' }
-          $expected = (node -p "require('./package.json').version").Trim()
-          $actual = (& $app --version | Select-Object -Last 1).Trim()
-          if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual" }
-      - uses: actions/upload-artifact@v5
-        with:
-          name: release-windows-arm64
-          path: |
-            dist/*Windows-arm64.exe
-            dist/latest*.yml
-            dist/*.blockmap
-          if-no-files-found: error
-
   macos-intel:
     needs: test
     uses: ./.github/workflows/macos-signed-release.yml
@@ -226,7 +162,7 @@ jobs:
     secrets: inherit
 
   publish:
-    needs: [linux-x64, linux-arm64, flatpak-x64, windows-x64, windows-arm64, macos-intel, macos-arm64]
+    needs: [linux-x64, flatpak-x64, windows-x64, macos-intel, macos-arm64]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -260,12 +196,8 @@ jobs:
           \) -print0 | while IFS= read -r -d '' file; do cp "$file" "release-assets/$(basename "$file")"; done
 
           test -n "$(find downloads/release-linux-x64 -type f -name 'latest-linux.yml' -print -quit)" && cp "$(find downloads/release-linux-x64 -type f -name 'latest-linux.yml' -print -quit)" release-assets/latest-linux.yml || true
-          ARM_LINUX_META="$(find downloads/release-linux-arm64 -type f -name 'latest*.yml' -print -quit || true)"
-          [ -z "$ARM_LINUX_META" ] || cp "$ARM_LINUX_META" release-assets/latest-linux-arm64.yml
           WIN_META="$(find downloads/release-windows-x64 -type f -name 'latest.yml' -print -quit || true)"
           [ -z "$WIN_META" ] || cp "$WIN_META" release-assets/latest.yml
-          WIN_ARM_META="$(find downloads/release-windows-arm64 -type f -name 'latest*.yml' -print -quit || true)"
-          [ -z "$WIN_ARM_META" ] || cp "$WIN_ARM_META" release-assets/latest-arm64.yml
 
           cd release-assets
           find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
