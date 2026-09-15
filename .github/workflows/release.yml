@@ -69,7 +69,7 @@ jobs:
           code=$?
           set -e
           test "$code" -eq 124
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: release-linux-x64
           path: |
@@ -98,7 +98,7 @@ jobs:
       - run: npm ci
       - name: Build Linux ARM64
         run: npx electron-builder --linux AppImage deb rpm pacman --arm64 --publish never
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: release-linux-arm64
           path: |
@@ -130,7 +130,7 @@ jobs:
       - run: npm install --no-save @malept/flatpak-bundler@0.4.0
       - name: Build Flatpak x64
         run: npx electron-builder --linux flatpak --x64 --publish never
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: release-flatpak-x64
           path: dist/*.flatpak
@@ -161,7 +161,7 @@ jobs:
           $expected = (node -p "require('./package.json').version").Trim()
           $actual = (& $app --version | Select-Object -Last 1).Trim()
           if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: release-windows-x64
           path: |
@@ -196,7 +196,7 @@ jobs:
           $expected = (node -p "require('./package.json').version").Trim()
           $actual = (& $app --version | Select-Object -Last 1).Trim()
           if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: release-windows-arm64
           path: |
