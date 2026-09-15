@@ -207,66 +207,23 @@ jobs:
 
   macos-intel:
     needs: test
-    runs-on: macos-15-intel
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build unsigned macOS Intel packages
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac dmg zip --x64 --publish never
-      - name: Smoke test macOS Intel package
-        shell: bash
-        run: |
-          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-x64.dmg' -print -quit)"
-          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-x64.zip' -print -quit)"
-          APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"
-          test -n "$APP"
-          test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-macos-intel
-          path: |
-            dist/*macOS-x64.dmg
-            dist/*macOS-x64.zip
-            dist/*.blockmap
-          if-no-files-found: error
+    uses: ./.github/workflows/macos-signed-release.yml
+    with:
+      arch: x64
+      runner: macos-15-intel
+      outdir: dist/mac
+      label: intel
+    secrets: inherit
 
   macos-arm64:
     needs: test
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build unsigned macOS Apple Silicon packages
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac dmg zip --arm64 --publish never
-      - name: Smoke test macOS Apple Silicon package
-        shell: bash
-        run: |
-          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
-          test -n "$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
-          APP="$(find dist/mac-arm64 -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"
-          if [ -z "$APP" ]; then APP="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 -print -quit)"; fi
-          test -n "$APP"
-          test "$("$APP" --version | tail -n 1)" = "$(node -p "require('./package.json').version")"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-macos-arm64
-          path: |
-            dist/*macOS-arm64.dmg
-            dist/*macOS-arm64.zip
-            dist/*.blockmap
-          if-no-files-found: error
+    uses: ./.github/workflows/macos-signed-release.yml
+    with:
+      arch: arm64
+      runner: macos-15
+      outdir: dist/mac-arm64
+      label: arm64
+    secrets: inherit
 
   publish:
     needs: [linux-x64, linux-arm64, flatpak-x64, windows-x64, windows-arm64, macos-intel, macos-arm64]
@@ -278,6 +235,7 @@ jobs:
           node-version: 22
       - uses: actions/download-artifact@v5
         with:
+          pattern: release-*
           path: downloads
       - name: Prepare release notes
         shell: bash
