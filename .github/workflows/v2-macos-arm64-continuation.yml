@@ -1,0 +1,173 @@
+name: VibeZ 2 macOS ARM64 Continuation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - v2.0-dev
+    paths:
+      - .github/workflows/v2-macos-arm64-continuation.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: vibez-v2-macos-arm64-continuation
+  cancel-in-progress: false
+
+jobs:
+  finish-arm64:
+    runs-on: macos-15
+    timeout-minutes: 350
+    env:
+      APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+    steps:
+      - name: Download exact accepted ARM64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-PRE-NOTARY
+          path: dist
+          repository: lecomputeur/vibez
+          run-id: 34939318530
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decode App Store Connect API key
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'AuthKey.p8'
+          p.write_bytes(base64.b64decode(os.environ['APPLE_API_KEY_P8_BASE64']))
+          p.chmod(0o600)
+          PY
+
+      - name: Restore, verify and staple accepted ARM64 app
+        shell: bash
+        run: |
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
+          test -n "$ZIP"
+          mkdir -p work/app
+          ditto -x -k "$ZIP" work/app
+          APP="$(find work/app -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          xcrun stapler staple "$APP"
+          xcrun stapler validate "$APP"
+          spctl --assess --type execute --verbose=4 "$APP"
+
+      - name: Recreate stapled ARM64 ZIP
+        shell: bash
+        run: |
+          APP="$(find work/app -maxdepth 1 -type d -name '*.app' -print -quit)"
+          ZIP="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.zip' -print -quit)"
+          test -n "$APP"
+          test -n "$ZIP"
+          rm -f "$ZIP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+
+      - name: Upload stapled ARM64 app
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-STAPLED-APP
+          path: dist/*macOS-arm64.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create ARM64 DMG
+        shell: bash
+        run: |
+          APP="$(find work/app -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -n "$APP"
+          DMG="dist/VibeZ-2-Beta-2.0.0-beta.1-macOS-arm64.dmg"
+          hdiutil create -volname "VibeZ 2 Beta" -srcfolder "$APP" -ov -format UDZO "$DMG"
+
+      - name: Preserve ARM64 DMG before notarization
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-PRE-NOTARY-DMG
+          path: dist/*macOS-arm64.dmg
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Submit ARM64 DMG and resiliently wait for Apple
+        env:
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
+          test -n "$DMG"
+
+          response=""
+          rc=1
+          for attempt in $(seq 1 10); do
+            set +e
+            response="$(xcrun notarytool submit "$DMG" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --output-format json 2>&1)"
+            rc=$?
+            set -e
+            echo "$response"
+            [ "$rc" -eq 0 ] && break
+            echo "Submit attempt $attempt failed; retrying in 30 seconds..."
+            sleep 30
+          done
+          [ "$rc" -eq 0 ]
+
+          ID="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          printf '%s\n' "$ID" | tee "$RUNNER_TEMP/arm64-dmg-submission-id.txt"
+          echo "Submission ID: $ID"
+
+          deadline=$(( $(date +%s) + 19800 ))
+          status="Unknown"
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            set +e
+            info="$(xcrun notarytool info "$ID" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --output-format json 2>&1)"
+            rc=$?
+            set -e
+            if [ "$rc" -ne 0 ]; then
+              echo "Temporary Apple/network status error; retrying in 30 seconds..."
+              echo "$info"
+              sleep 30
+              continue
+            fi
+            status="$(printf '%s' "$info" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status","Unknown"))')"
+            echo "Notarization $ID: $status"
+            case "$status" in
+              Accepted) break ;;
+              Invalid|Rejected)
+                xcrun notarytool log "$ID" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" || true
+                exit 1
+                ;;
+              *) sleep 30 ;;
+            esac
+          done
+          [ "$status" = "Accepted" ]
+
+      - name: Preserve ARM64 DMG submission ID
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-DMG-NOTARY-STATE
+          path: ${{ runner.temp }}/arm64-dmg-submission-id.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Staple and validate ARM64 DMG
+        shell: bash
+        run: |
+          DMG="$(find dist -maxdepth 1 -type f -name '*macOS-arm64.dmg' -print -quit)"
+          test -n "$DMG"
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+
+      - name: Upload final ARM64 signed and notarized files
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeZ-2.0.0-beta.1-macOS-Apple-Silicon-SIGNED-NOTARIZED
+          path: |
+            dist/*macOS-arm64.zip
+            dist/*macOS-arm64.dmg
+          if-no-files-found: error
+          retention-days: 90
