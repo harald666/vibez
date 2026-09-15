@@ -18,7 +18,7 @@ jobs:
       APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
       APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
       APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      SUBMISSION_ID: 068a8e60-1887-4617-857a-1b141a307f40
+      SUBMISSION_ID: 0e9923c8-9815-4652-9413-728d1f3f6584
     steps:
       - name: Decode API key
         shell: bash
