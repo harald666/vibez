@@ -70,7 +70,7 @@ Required external setup:
    - App Store Connect Key ID
    - App Store Connect Issuer ID
 
-The following GitHub secrets will be used:
+The following GitHub secrets are configured and used:
 
 - `MAC_CERTIFICATE_P12_BASE64` — base64 of the exported `.p12`
 - `MAC_CERTIFICATE_PASSWORD` — password protecting the `.p12`
@@ -96,6 +96,23 @@ The signed macOS release job must:
 5. Verify Gatekeeper acceptance with `spctl` where applicable.
 6. Verify notarization/stapling for the distributed artifact.
 7. Publish only after all checks pass.
+
+## Verified macOS release pipeline
+
+The macOS signing and notarization path was verified end to end on 15 September 2026:
+
+- Intel app: Developer ID signed, accepted by Apple, stapled and Gatekeeper verified.
+- Intel DMG: accepted by Apple, stapled and validated.
+- Apple Silicon app: Developer ID signed, accepted by Apple, stapled and Gatekeeper verified.
+- Apple Silicon DMG: accepted by Apple, stapled and validated.
+- Final ZIP and DMG artifacts were produced successfully for both architectures.
+
+The permanent implementation is split between:
+
+- `.github/workflows/release.yml` — calls the signed macOS builds and publishes only final `release-*` artifacts.
+- `.github/workflows/macos-signed-release.yml` — reusable Intel/Apple Silicon build, signing, notarization, stapling and validation workflow.
+
+For resilience, the workflow stores the exact signed app, the pre-notarization DMG and both Apple submission IDs as recovery artifacts for 90 days. Recovery artifacts use the `recovery-*` or `internal-*` prefix and are excluded from GitHub Releases.
 
 ## Production identity
 
