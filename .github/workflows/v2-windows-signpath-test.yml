@@ -49,7 +49,7 @@ jobs:
           "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
       - name: Upload unsigned installer for SignPath origin verification
         id: upload-unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Windows-x64-unsigned-for-signpath
           path: ${{ steps.locate.outputs.path }}
@@ -72,7 +72,7 @@ jobs:
           $signature = Get-AuthenticodeSignature $signed.FullName
           $signature | Format-List Status,StatusMessage,@{Name='Signer';Expression={$_.SignerCertificate.Subject}}
           if ($signature.Status -ne 'Valid') { throw "Authenticode signature is not valid: $($signature.Status)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Windows-x64-SIGNED
           path: signed/**/*.exe
@@ -115,7 +115,7 @@ jobs:
           "path=$($installer.FullName)" >> $env:GITHUB_OUTPUT
       - name: Upload unsigned installer for SignPath origin verification
         id: upload-unsigned
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Windows-arm64-unsigned-for-signpath
           path: ${{ steps.locate.outputs.path }}
@@ -138,7 +138,7 @@ jobs:
           $signature = Get-AuthenticodeSignature $signed.FullName
           $signature | Format-List Status,StatusMessage,@{Name='Signer';Expression={$_.SignerCertificate.Subject}}
           if ($signature.Status -ne 'Valid') { throw "Authenticode signature is not valid: $($signature.Status)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: VibeZ-2.0.0-beta.1-Windows-arm64-SIGNED
           path: signed/**/*.exe

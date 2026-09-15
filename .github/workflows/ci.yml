@@ -84,7 +84,7 @@ jobs:
             echo "VibeZ exited unexpectedly during smoke test (code $code)." >&2
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-linux-x64
           path: |
@@ -118,7 +118,7 @@ jobs:
           test -n "$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f -name '*.rpm' -print -quit)"
           test -n "$(find dist -maxdepth 1 -type f \( -name '*.pacman' -o -name '*.pkg.tar.zst' \) -print -quit)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-linux-arm64
           path: |
@@ -150,7 +150,7 @@ jobs:
         run: npx electron-builder --linux flatpak --x64 --publish never
       - name: Verify Flatpak output
         run: test -n "$(find dist -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-flatpak-x64
           path: dist/*.flatpak
@@ -181,7 +181,7 @@ jobs:
           $expected = (node -p "require('./package.json').version").Trim()
           $actual = (& $app --version | Select-Object -Last 1).Trim()
           if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual (expected $expected)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-windows-x64
           path: |
@@ -216,7 +216,7 @@ jobs:
           $expected = (node -p "require('./package.json').version").Trim()
           $actual = (& $app --version | Select-Object -Last 1).Trim()
           if ($actual -ne $expected) { throw "Unexpected VibeZ version: $actual (expected $expected)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-windows-arm64
           path: |
@@ -249,7 +249,7 @@ jobs:
           EXPECTED="$(node -p "require('./package.json').version")"
           ACTUAL="$("$APP" --version | tail -n 1)"
           test "$ACTUAL" = "$EXPECTED"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-macos-intel
           path: |
@@ -284,7 +284,7 @@ jobs:
           EXPECTED="$(node -p "require('./package.json').version")"
           ACTUAL="$("$APP" --version | tail -n 1)"
           test "$ACTUAL" = "$EXPECTED"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: vibez-macos-arm64
           path: |
